@@ -1,20 +1,16 @@
-# Finora-FrontEnd
+# React + Vite
 
-Finora is a finance and budget tracking app built.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Team
-Syed Kazmi, Usayd, Ayaan
+Currently, two official plugins are available:
 
-## Tech Stack
-TBD
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Getting Started
-Setup instructions coming soon.
+## React Compiler
 
-## Workflow
-- `main` is always stable. Never push directly to it.
-- Open a pull request and get one teammate's review before merging
-- Reference the user story in your PR (e.g. "US-04: Add income event")
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Related Repos
-- [Finora-API](https://github.com/Finora-Finance-CA/Finora-API)
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
