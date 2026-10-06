@@ -3,9 +3,10 @@
 
 import { useRef, useState } from 'react'
 import { createTransaction } from '../api/transactions'
+import { TRANSACTION_TYPES } from './constants'
 import { todayLocal } from './dates'
 import { formatCents } from './money'
-import { FIELD_NAMES, mapApiErrors, toTransactionPayload, validateField, validateTransactionForm } from './validation'
+import { mapApiErrors, toTransactionPayload, validateField, validateTransactionForm } from './validation'
 
 function emptyValues() {
   return { amount: '', date: todayLocal(), category: '', description: '' }
@@ -13,12 +14,12 @@ function emptyValues() {
 
 /**
  * @param {object} options
- * @param {'income'|'expense'} options.type Sent as the transaction's `type`.
- * @param {boolean} options.categoryRequired Whether a category must be chosen.
- * @param {string} options.successLabel Used in the confirmation, e.g. "Expense".
+ * @param {'income'|'expense'} options.type Sent as the transaction's `type`. The
+ *   fields, labels and rules come from TRANSACTION_TYPES[type].
  * @param {(transaction: object) => void} [options.onSaved] Called after a successful save.
  */
-export function useTransactionForm({ type, categoryRequired, successLabel, onSaved }) {
+export function useTransactionForm({ type, onSaved }) {
+  const { label, fields } = TRANSACTION_TYPES[type]
   const [values, setValues] = useState(emptyValues)
   const [errors, setErrors] = useState({})
   // A problem that isn't about one field: { kind, message }.
@@ -27,18 +28,31 @@ export function useTransactionForm({ type, categoryRequired, successLabel, onSav
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
+  // Switching between expense and income keeps the typed values but drops every
+  // error and confirmation, which belonged to the other type. Done during render
+  // (not in an effect) so the old messages are never shown under the new heading.
+  const [shownType, setShownType] = useState(type)
+  if (type !== shownType) {
+    setShownType(type)
+    setErrors({})
+    setFormError(null)
+    setSuccessMessage('')
+    setHasAttemptedSubmit(false)
+  }
+
   // State updates aren't immediate, so a ref blocks a second submit fired before
   // the button re-renders as disabled (e.g. pressing Enter twice quickly).
   const submittingRef = useRef(false)
   const inputRefs = useRef({})
-  const options = { categoryRequired }
+  // Only an expense shows a category, and there it's required.
+  const options = { categoryRequired: fields.includes('category'), fields }
 
   function focusField(field) {
     inputRefs.current[field]?.focus()
   }
 
   function focusFirstError(fieldErrors) {
-    const first = FIELD_NAMES.find((field) => fieldErrors[field])
+    const first = fields.find((field) => fieldErrors[field])
     if (first) focusField(first)
   }
 
@@ -70,7 +84,7 @@ export function useTransactionForm({ type, categoryRequired, successLabel, onSav
       return
     }
 
-    const payload = toTransactionPayload(values, type)
+    const payload = toTransactionPayload(values, type, fields)
     submittingRef.current = true
     setIsSubmitting(true)
 
@@ -79,7 +93,7 @@ export function useTransactionForm({ type, categoryRequired, successLabel, onSav
       setValues(emptyValues())
       setErrors({})
       setHasAttemptedSubmit(false)
-      setSuccessMessage(`${successLabel} of ${formatCents(payload.amount_cents)} saved.`)
+      setSuccessMessage(`${label} of ${formatCents(payload.amount_cents)} saved.`)
       focusField('amount')
       onSaved?.(transaction)
     } catch (err) {
@@ -92,7 +106,7 @@ export function useTransactionForm({ type, categoryRequired, successLabel, onSav
 
   function handleApiError(err) {
     if (err?.kind === 'validation') {
-      const { fieldErrors, otherErrors } = mapApiErrors(err.fieldErrors)
+      const { fieldErrors, otherErrors } = mapApiErrors(err.fieldErrors, fields)
       setErrors(fieldErrors)
       if (otherErrors.length > 0 || Object.keys(fieldErrors).length === 0) {
         setFormError({ kind: 'validation', message: [err.message, ...otherErrors].join(' ') })

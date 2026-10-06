@@ -1,41 +1,47 @@
 import FormField from '../components/FormField'
-import { CATEGORIES, MAX_DESCRIPTION_LENGTH, MIN_DATE } from './constants'
+import { CATEGORIES, MAX_DESCRIPTION_LENGTH, MIN_DATE, TRANSACTION_TYPES } from './constants'
+import TransactionTypeSwitch from './TransactionTypeSwitch'
 import { useTransactionForm } from './useTransactionForm'
 import './TransactionForm.css'
 
 const SIGN_IN_HINT_DEV = 'Developers: set VITE_DEV_TOKEN in .env.development.local until login exists (see README).'
 
 /**
- * Form for adding a transaction. Add Expense uses it with type "expense"; Add
- * Income (US-12) can use it with type "income" and categoryRequired={false}.
+ * Form for adding an expense or an income. The heading, button, fields and rules
+ * follow `type` (see TRANSACTION_TYPES); the expense form has a category, the
+ * income form doesn't.
+ *
+ * With `onTypeChange`, the form starts with an Expense or Income switch. Changing
+ * type keeps the amount, date and description typed so far and clears any error or
+ * confirmation. The switch is locked while a save is in progress.
  *
  * @param {object} props
  * @param {'income'|'expense'} props.type
- * @param {string} props.title Heading, e.g. "Add expense".
- * @param {string} props.submitLabel Button text, e.g. "Save expense".
- * @param {string} props.successLabel Used in the confirmation, e.g. "Expense".
- * @param {boolean} [props.categoryRequired=true]
+ * @param {(type: 'income'|'expense') => void} [props.onTypeChange]
  * @param {(transaction: object) => void} [props.onSaved]
  */
-export default function TransactionForm({
-  type,
-  title,
-  submitLabel,
-  successLabel,
-  categoryRequired = true,
-  onSaved,
-}) {
+export default function TransactionForm({ type, onTypeChange, onSaved }) {
+  const { title, submitLabel, fields } = TRANSACTION_TYPES[type]
   const { values, errors, formError, successMessage, isSubmitting, fieldProps, handleSubmit } =
-    useTransactionForm({ type, categoryRequired, successLabel, onSaved })
+    useTransactionForm({ type, onSaved })
 
-  // Ids are prefixed by type so an expense and an income form can share a page.
-  const id = (field) => `${type}-${field}`
+  // The same input stays in place when the type changes, so ids don't include it.
+  const id = (field) => `transaction-${field}`
   const headingId = id('heading')
   const descriptionLength = values.description.trim().length
 
   return (
     <form className="transaction-form" onSubmit={handleSubmit} noValidate aria-labelledby={headingId}>
       <h2 id={headingId}>{title}</h2>
+
+      {onTypeChange && (
+        <TransactionTypeSwitch
+          name={id('type')}
+          value={type}
+          onChange={onTypeChange}
+          disabled={isSubmitting}
+        />
+      )}
 
       <FormField id={id('amount')} label="Amount ($)" hint="For example 12.50" error={errors.amount}>
         {(controlProps) => (
@@ -54,23 +60,20 @@ export default function TransactionForm({
         {(controlProps) => <input {...controlProps} {...fieldProps('date')} type="date" min={MIN_DATE} />}
       </FormField>
 
-      <FormField
-        id={id('category')}
-        label="Category"
-        optional={!categoryRequired}
-        error={errors.category}
-      >
-        {(controlProps) => (
-          <select {...controlProps} {...fieldProps('category')}>
-            <option value="">Choose a category</option>
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        )}
-      </FormField>
+      {fields.includes('category') && (
+        <FormField id={id('category')} label="Category" error={errors.category}>
+          {(controlProps) => (
+            <select {...controlProps} {...fieldProps('category')}>
+              <option value="">Choose a category</option>
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          )}
+        </FormField>
+      )}
 
       <FormField
         id={id('description')}

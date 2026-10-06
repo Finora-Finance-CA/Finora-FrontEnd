@@ -1,4 +1,4 @@
-// Validation for the transaction forms (Add Expense now, Add Income in US-12).
+// Validation for the transaction forms (Add Expense and Add Income).
 // Form values are the raw strings from the inputs:
 //   { amount: '19.99', date: '2026-10-06', category: 'Food', description: '' }
 
@@ -43,12 +43,17 @@ export function validateField(field, values, options) {
 }
 
 /**
- * Checks every field. Returns { field: message } for each invalid one; an empty
- * object means the form is valid.
+ * Checks every field the form shows. Returns { field: message } for each invalid
+ * one; an empty object means the form is valid.
+ *
+ * @param {object} values
+ * @param {{ categoryRequired: boolean, fields?: readonly string[] }} options
+ *   `fields` defaults to all of FIELD_NAMES.
  */
 export function validateTransactionForm(values, options) {
+  const { fields = FIELD_NAMES } = options
   const errors = {}
-  for (const field of FIELD_NAMES) {
+  for (const field of fields) {
     const message = validateField(field, values, options)
     if (message) errors[field] = message
   }
@@ -61,14 +66,16 @@ export function validateTransactionForm(values, options) {
  *
  * @param {object} values
  * @param {'income'|'expense'} type
+ * @param {readonly string[]} [fields] The fields the form shows. A value for a
+ *   field that isn't shown (e.g. category on the income form) is never sent.
  */
-export function toTransactionPayload(values, type) {
+export function toTransactionPayload(values, type, fields = FIELD_NAMES) {
   const payload = {
     amount_cents: parseDollarsToCents(values.amount).cents,
     date: values.date,
     type,
   }
-  if (values.category) payload.category = values.category
+  if (fields.includes('category') && values.category) payload.category = values.category
 
   const description = values.description.trim()
   if (description) payload.description = description
@@ -81,18 +88,19 @@ const API_TO_FORM_FIELD = { amount_cents: 'amount' }
 
 /**
  * Splits the API's 400 `errors` object into errors for form fields and a list of
- * messages that don't belong to any field (e.g. `type` or `body`).
+ * messages that don't belong to any shown field (e.g. `type` or `body`).
  *
  * @param {Record<string, string>} apiErrors
+ * @param {readonly string[]} [fields] The fields the form shows.
  * @returns {{ fieldErrors: Record<string, string>, otherErrors: string[] }}
  */
-export function mapApiErrors(apiErrors) {
+export function mapApiErrors(apiErrors, fields = FIELD_NAMES) {
   const fieldErrors = {}
   const otherErrors = []
 
   for (const [apiField, message] of Object.entries(apiErrors ?? {})) {
     const field = API_TO_FORM_FIELD[apiField] ?? apiField
-    if (FIELD_NAMES.includes(field)) {
+    if (fields.includes(field)) {
       fieldErrors[field] = humanizeApiMessage(apiField, field, message)
     } else {
       otherErrors.push(String(message))

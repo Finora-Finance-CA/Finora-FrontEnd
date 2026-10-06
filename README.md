@@ -43,3 +43,12 @@ API calls need a token. Until login is built, use a development token:
 `VITE_DEV_TOKEN` is only used by the dev server and is never included in a production build. A token saved in `localStorage` under `finora.accessToken` (where login will put it) takes priority over it.
 
 To point at an API somewhere else, set `VITE_API_URL` (for example `https://api.example.com`). Leave it empty to use the dev proxy.
+
+## Adding a transaction
+
+Open http://localhost:5173/transactions. Choose **Expense** or **Income** with the switch at the top of the form (Expense is selected by default); the heading and the save button change to match.
+
+- **Expense:** amount, date, category (required) and an optional description.
+- **Income:** amount, date and an optional description. Income has no category.
+
+The date defaults to today. Switching type keeps the amount, date and description you've typed and clears any error or confirmation message.
