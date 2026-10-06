@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { supabase } from '../lib/supabase';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,6 +14,8 @@ const ERROR_MESSAGES = {
 function AuthPage({ mode }) {
     const isRegister = mode === 'register';
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectTo = location.state?.from?.pathname || '/transactions';
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
@@ -60,7 +62,7 @@ function AuthPage({ mode }) {
                 return;
             }
 
-            navigate('/transactions');
+            navigate(redirectTo, { replace: true });
         } catch (err) {
             console.error('Unexpected auth error:', err);
             setError('Something went wrong. Please try again.');
