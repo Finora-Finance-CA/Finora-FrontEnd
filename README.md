@@ -1,54 +1,88 @@
-# React + Vite
+# Finora-FrontEnd
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React front-end for Finora, a personal finance and budgeting app.
 
-Currently, two official plugins are available:
+## Team
+Syed Kazmi, Usayd Jahangiri, Ayaan Sethi
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
+- React with Vite (JavaScript, ESLint)
+- React Router
+- Tailwind CSS
+- Supabase Auth (`@supabase/supabase-js`) for sign-up, login and sessions
+- Vitest and Testing Library for tests
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+nvm use
+npm install
+cp .env.example .env
+```
 
-## Expanding the ESLint configuration
+Fill in `.env` (real values are in the team's credential document):
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| Variable | Value |
+| --- | --- |
+| `VITE_API_URL` | Leave **empty** in development. Requests go to `/api` and Vite proxies them to `http://localhost:4000` (see `vite.config.js`). |
+| `VITE_SUPABASE_URL` | `https://<project-id>.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's publishable key (`sb_publishable_...`) |
 
-## Running against the local API
+Use `.env` only (not `.env.development.local`), so everyone has the same setup. Restart `npm run dev` after changing it; Vite only reads `.env` on startup.
 
-The front-end expects the API from the sibling repo [Finora-API](https://github.com/Finora-Finance-CA/Finora-API) running on `http://localhost:4000`. In development, Vite proxies every `/api` request to it (see `vite.config.js`), so the API doesn't need CORS set up.
+Start the API first (see Finora-API), then:
 
-1. Start the API (in `Finora-API`): `npm run dev`
-2. Start the front-end (in this repo): `npm install`, then `npm run dev`, and open http://localhost:5173
+```bash
+npm run dev
+```
 
-### Testing before login exists
+The app runs at http://localhost:5173.
 
-API calls need a token. Until login is built, use a development token:
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the dev server |
+| `npm test` | Runs the tests once |
+| `npm run lint` | Checks the code with ESLint |
 
-1. In `Finora-API`, generate one (valid for 1 hour). Use a test email, because the script creates the user in the shared database if it doesn't exist:
+## Switching to Supabase Auth: what to do after pulling
+1. Run `npm install` (`@supabase/supabase-js` was added).
+2. Update `.env` to match `.env.example`: add the two `VITE_SUPABASE_` variables, keep `VITE_API_URL` empty, and delete `VITE_DEV_TOKEN` if you have it.
+3. Register an account at `/register` to test. Dev tokens no longer work.
+4. `BrowserRouter` moved from `App.jsx` to `main.jsx`, where it wraps `AuthProvider`. New routes still go in `App.jsx`.
 
-   ```powershell
-   npm run --silent dev:token -- you+test@example.com
-   ```
+## Routes
 
-2. In this repo, create `.env.development.local` (git-ignored, see `.env.example`) and paste the token:
+| Path | Who can see it | Page |
+| --- | --- | --- |
+| `/login` | Signed-out users only | `AuthPage` in login mode |
+| `/register` | Signed-out users only | `AuthPage` in register mode |
+| `/transactions` | Signed-in users only | `TransactionsPage` |
+| `/` | Everyone | Redirects to `/transactions` (or `/login` if signed out) |
 
-   ```
-   VITE_DEV_TOKEN=<paste the token here>
-   ```
+## How auth works
+- `src/lib/supabase.js` creates the one Supabase client for the app. Import it from here; never create another.
+- `src/context/AuthContext.jsx` provides `useAuth()`, which returns `{ session, user, loading, signOut }`. It reads the saved session on load and listens for sign-in, sign-out and token refresh, so sessions survive a page refresh.
+- `src/components/ProtectedRoute.jsx` sends signed-out users to `/login`, and back to the page they wanted after logging in. Wrap any new private page in it.
+- `src/components/GuestRoute.jsx` sends signed-in users away from `/login` and `/register`.
+- `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route.
+- `src/auth/token.js` exports `getAuthToken()`, which returns the current Supabase access token. It is `async`, so always `await` it.
+- `src/api/client.js` (`apiRequest`) adds the token to every API request automatically. Use it for all API calls rather than calling `fetch` directly.
 
-3. Restart `npm run dev`. Vite only reads env files at startup.
+Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 
-`VITE_DEV_TOKEN` is only used by the dev server and is never included in a production build. A token saved in `localStorage` under `finora.accessToken` (where login will put it) takes priority over it.
+A temporary status bar in `App.jsx` shows who is logged in and has a Log out button. Remove it once there's a real navigation bar.
 
-To point at an API somewhere else, set `VITE_API_URL` (for example `https://api.example.com`). Leave it empty to use the dev proxy.
+## Adding a protected page
+1. Create the page in `src/pages`.
+2. Add a route in `App.jsx`, wrapped in `<ProtectedRoute>`.
+3. Call the API with `apiRequest` from `src/api/client.js`.
+4. Get the current user with `useAuth()` if the page needs it.
 
-## Adding a transaction
+## Workflow
+- `develop` holds the current sprint's work. `main` is only updated at the end of each sprint, through one PR from `develop`.
+- Branch from an up-to-date `develop`: `<name>/US-XX-short-description`.
+- Open a PR into `develop`, reference the story, and get one teammate's approval before merging. Don't merge your own PR.
+- Never commit `.env`.
 
-Open http://localhost:5173/transactions. Choose **Expense** or **Income** with the switch at the top of the form (Expense is selected by default); the heading and the save button change to match.
-
-- **Expense:** amount, date, category (required) and an optional description.
-- **Income:** amount, date and an optional description. Income has no category.
-
-The date defaults to today. Switching type keeps the amount, date and description you've typed and clears any error or confirmation message.
+## Related Repos
+- [Finora-API](https://github.com/Finora-Finance-CA/Finora-API)

@@ -60,7 +60,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
   if (auth) {
-    const token = getAuthToken()
+      const token = await getAuthToken()
     if (!token) {
       throw new ApiError('unauthorized', MESSAGES.unauthorized)
     }

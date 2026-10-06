@@ -1,19 +1,37 @@
-// Minimal routing added for US-11 so the Transactions page has a URL. Usayd owns
-// front-end scaffolding and routing (US-06) and is free to change or replace this
-// file. It replaces the Vite starter page.
-
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
-import TransactionsPage from './pages/TransactionsPage'
+import { Navigate, Route, Routes } from 'react-router';
+import TransactionsPage from './pages/TransactionsPage';
+import AuthPage from './pages/AuthPage';
+import { useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/transactions" replace />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    const { user, loading, signOut } = useAuth();
+
+    return (
+        <>
+            <div style={{ padding: '0.5rem', background: '#eee' }}>
+                {loading
+                    ? 'Checking session...'
+                    : user
+                        ? <>Logged in as {user.email} <button onClick={signOut}>Log out</button></>
+                        : 'Not logged in'}
+            </div>
+
+            <Routes>
+                <Route path="/login" element={
+                    <GuestRoute><AuthPage key="login" mode="login" /></GuestRoute>
+                } />
+                <Route path="/register" element={
+                    <GuestRoute><AuthPage key="register" mode="register" /></GuestRoute>
+                } />
+                <Route path="/" element={<Navigate to="/transactions" replace />} />
+                <Route path="/transactions" element={
+                    <ProtectedRoute><TransactionsPage /></ProtectedRoute>
+                } />
+            </Routes>
+        </>
+    );
 }
 
-export default App
+export default App;
