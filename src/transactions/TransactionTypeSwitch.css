@@ -1,0 +1,69 @@
+.type-switch {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.type-switch__legend {
+  font-weight: 600;
+  color: var(--text-h);
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.type-switch__options {
+  display: inline-flex;
+  border: 1px solid var(--field-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.type-switch__option {
+  position: relative;
+  display: flex;
+
+  & + & {
+    border-left: 1px solid var(--field-border);
+  }
+
+  /* The radio stays in the page for keyboard and screen reader use; the label text
+     is what people see and click. */
+  input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  span {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 20px;
+    font-weight: 600;
+    color: var(--text-h);
+    background: var(--bg);
+  }
+
+  input:checked + span {
+    color: #fff;
+    background: #7e22ce;
+  }
+
+  /* Drawn inside the option in the text colour, so it shows on the purple chosen
+     option as well as the plain one. */
+  input:focus-visible + span {
+    outline: 2px solid currentColor;
+    outline-offset: -6px;
+  }
+
+  input:disabled {
+    cursor: not-allowed;
+  }
+
+  input:disabled + span {
+    opacity: 0.6;
+  }
+}
