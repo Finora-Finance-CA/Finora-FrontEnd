@@ -1,0 +1,70 @@
+/* Form colours, alongside the theme tokens in index.css. */
+:root {
+  --field-border: #8d8794;
+  --error: #b42318;
+  --error-bg: #fef3f2;
+  --success: #067647;
+  --success-bg: #ecfdf3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --field-border: #6b7280;
+    --error: #f97066;
+    --error-bg: rgba(249, 112, 102, 0.12);
+    --success: #47cd89;
+    --success-bg: rgba(71, 205, 137, 0.12);
+  }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.form-field__label {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.form-field__optional {
+  font-weight: 400;
+  color: var(--text);
+}
+
+.form-field input,
+.form-field select {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--field-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-height: 44px;
+  box-sizing: border-box;
+  width: 100%;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.form-field--invalid input,
+.form-field--invalid select {
+  border-color: var(--error);
+}
+
+.form-field__hint,
+.form-field__error {
+  font-size: 15px;
+  line-height: 135%;
+  margin: 0;
+}
+
+.form-field__error {
+  color: var(--error);
+  font-weight: 500;
+}
