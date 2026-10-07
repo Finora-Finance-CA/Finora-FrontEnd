@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The tests mock Supabase and the API, so no secrets or environment variables are needed.
+      - run: npm test
+
+      - run: npm run build
+
+      # Lint is left out until the existing react-refresh/only-export-components error in
+      # src/context/AuthContext.jsx is fixed. Then add:
+      # - run: npm run lint

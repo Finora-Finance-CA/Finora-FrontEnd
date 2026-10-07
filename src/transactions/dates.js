@@ -29,3 +29,18 @@ export function isValidDate(value) {
   // Same-format YYYY-MM-DD strings compare correctly as text.
   return isRealDate && value >= MIN_DATE
 }
+
+// Formatted in UTC because the Date is built at UTC midnight; a local time zone could
+// show the day before.
+const displayFormat = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** A YYYY-MM-DD date for display, e.g. "2026-10-05" → "Oct 5, 2026". */
+export function formatDate(value) {
+  const [year, month, day] = value.split('-').map(Number)
+  return displayFormat.format(new Date(Date.UTC(year, month - 1, day)))
+}

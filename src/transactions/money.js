@@ -1,7 +1,6 @@
-// Converts between what people type ("19.99") and the integer cents the API
-// stores (1999). The text is split into dollars and cents and each part is read
-// as a whole number, so there is no floating point rounding (19.99 * 100 would
-// give 1998.9999999999998).
+// Converts between dollar text ("19.99") and the integer cents the API stores (1999),
+// in both directions with whole-number maths only. Floating point would round wrongly:
+// 19.99 * 100 gives 1998.9999999999998.
 
 import { MAX_AMOUNT_CENTS } from './constants'
 
@@ -47,9 +46,30 @@ export function parseDollarsToCents(input) {
   return { cents, error: null }
 }
 
+/**
+ * Integer cents as plain dollar text, e.g. 1999 → "19.99" and 5 → "0.05". This is the
+ * format the amount field accepts, so the edit form starts from the saved amount.
+ *
+ * @param {number} cents A whole number.
+ * @throws {TypeError} If `cents` is not a safe whole number.
+ */
+export function centsToDollarString(cents) {
+  if (!Number.isSafeInteger(cents)) {
+    throw new TypeError(`Expected a whole number of cents, got ${cents}.`)
+  }
+  const absolute = Math.abs(cents)
+  const remainder = absolute % 100
+  // absolute - remainder is a multiple of 100, so this division is exact.
+  const dollars = (absolute - remainder) / 100
+  return `${cents < 0 ? '-' : ''}${dollars}.${String(remainder).padStart(2, '0')}`
+}
+
 const currencyFormat = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' })
 
-/** Formats integer cents for display, e.g. 1999 → "$19.99". */
+/**
+ * Formats integer cents for display, e.g. 1999 → "$19.99". Intl formats the decimal
+ * text exactly, so the amount never passes through a binary fraction.
+ */
 export function formatCents(cents) {
-  return currencyFormat.format(cents / 100)
+  return currencyFormat.format(centsToDollarString(cents))
 }

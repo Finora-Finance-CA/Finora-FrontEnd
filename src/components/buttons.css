@@ -1,0 +1,45 @@
+/* Secondary and destructive buttons. The main purple button is .transaction-form__submit. */
+.button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.button--secondary {
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--field-border);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-bg);
+  }
+}
+
+.button--danger {
+  color: #fff;
+  background: #b42318;
+  border: 1px solid #b42318;
+
+  &:hover:not(:disabled) {
+    background: #912018;
+  }
+}
+
+/* Smaller buttons for repeated row actions. Still at least 44px tall to tap. */
+.button--compact {
+  padding: 6px 12px;
+  font-size: 16px;
+}

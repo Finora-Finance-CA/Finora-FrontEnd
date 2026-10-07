@@ -2,25 +2,42 @@
 // renders; this hook owns the values, validation, the API call and its outcome.
 
 import { useRef, useState } from 'react'
-import { createTransaction } from '../api/transactions'
+import { createTransaction, updateTransaction } from '../api/transactions'
+import { useIsMountedRef } from '../hooks/useIsMountedRef'
 import { TRANSACTION_TYPES } from './constants'
 import { todayLocal } from './dates'
-import { formatCents } from './money'
+import { centsToDollarString, formatCents } from './money'
 import { mapApiErrors, toTransactionPayload, validateField, validateTransactionForm } from './validation'
 
 function emptyValues() {
   return { amount: '', date: todayLocal(), category: '', description: '' }
 }
 
+// A saved transaction as the inputs show it.
+function valuesFrom(transaction) {
+  return {
+    amount: centsToDollarString(transaction.amount_cents),
+    date: transaction.date,
+    category: transaction.category ?? '',
+    description: transaction.description ?? '',
+  }
+}
+
 /**
  * @param {object} options
  * @param {'income'|'expense'} options.type Sent as the transaction's `type`. The
  *   fields, labels and rules come from TRANSACTION_TYPES[type].
+ * @param {object} [options.transaction] The saved transaction to edit. The form starts
+ *   with its values and saving replaces it (PUT). Without it, saving adds a new one.
  * @param {(transaction: object) => void} [options.onSaved] Called after a successful save.
+ * @param {() => void} [options.onNotFound] Called, instead of showing an error, when
+ *   the transaction being edited no longer exists.
+ * @param {(isSubmitting: boolean) => void} [options.onSubmittingChange] Called when a
+ *   save starts and ends, e.g. so a dialog can't be closed part-way through.
  */
-export function useTransactionForm({ type, onSaved }) {
+export function useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange }) {
   const { label, fields } = TRANSACTION_TYPES[type]
-  const [values, setValues] = useState(emptyValues)
+  const [values, setValues] = useState(() => (transaction ? valuesFrom(transaction) : emptyValues()))
   const [errors, setErrors] = useState({})
   // A problem that isn't about one field: { kind, message }.
   const [formError, setFormError] = useState(null)
@@ -43,6 +60,7 @@ export function useTransactionForm({ type, onSaved }) {
   // State updates aren't immediate, so a ref blocks a second submit fired before
   // the button re-renders as disabled (e.g. pressing Enter twice quickly).
   const submittingRef = useRef(false)
+  const isMountedRef = useIsMountedRef()
   const inputRefs = useRef({})
   // Only an expense shows a category, and there it's required.
   const options = { categoryRequired: fields.includes('category'), fields }
@@ -87,24 +105,41 @@ export function useTransactionForm({ type, onSaved }) {
     const payload = toTransactionPayload(values, type, fields)
     submittingRef.current = true
     setIsSubmitting(true)
+    onSubmittingChange?.(true)
 
+    let saved = null
+    let failure = null
     try {
-      const transaction = await createTransaction(payload)
-      setValues(emptyValues())
-      setErrors({})
-      setHasAttemptedSubmit(false)
-      setSuccessMessage(`${label} of ${formatCents(payload.amount_cents)} saved.`)
-      focusField('amount')
-      onSaved?.(transaction)
+      saved = transaction ? await updateTransaction(transaction.id, payload) : await createTransaction(payload)
     } catch (err) {
-      handleApiError(err)
-    } finally {
-      submittingRef.current = false
-      setIsSubmitting(false)
+      failure = err
     }
+
+    submittingRef.current = false
+    // The form may have closed while the request was out (e.g. the user signed out).
+    if (!isMountedRef.current) return
+    setIsSubmitting(false)
+    onSubmittingChange?.(false)
+
+    if (failure) handleApiError(failure)
+    else if (transaction) onSaved?.(saved)
+    else handleCreated(saved, payload)
+  }
+
+  function handleCreated(created, payload) {
+    setValues(emptyValues())
+    setErrors({})
+    setHasAttemptedSubmit(false)
+    setSuccessMessage(`${label} of ${formatCents(payload.amount_cents)} saved.`)
+    focusField('amount')
+    onSaved?.(created)
   }
 
   function handleApiError(err) {
+    if (err?.kind === 'not_found' && onNotFound) {
+      onNotFound()
+      return
+    }
     if (err?.kind === 'validation') {
       const { fieldErrors, otherErrors } = mapApiErrors(err.fieldErrors, fields)
       setErrors(fieldErrors)
