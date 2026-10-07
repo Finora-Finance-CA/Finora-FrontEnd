@@ -1,10 +1,9 @@
 import FormField from '../components/FormField'
+import SessionEndedMessage from '../components/SessionEndedMessage'
 import { CATEGORIES, MAX_DESCRIPTION_LENGTH, MIN_DATE, TRANSACTION_TYPES } from './constants'
 import TransactionTypeSwitch from './TransactionTypeSwitch'
 import { useTransactionForm } from './useTransactionForm'
 import './TransactionForm.css'
-
-const SIGN_IN_HINT_DEV = 'Developers: set VITE_DEV_TOKEN in .env.development.local until login exists (see README).'
 
 /**
  * Form for adding an expense or an income. The heading, button, fields and rules
@@ -89,10 +88,7 @@ export default function TransactionForm({ type, onTypeChange, onSaved }) {
 
       {formError && (
         <div className="transaction-form__alert" role="alert">
-          <p>{formError.message}</p>
-          {formError.kind === 'unauthorized' && import.meta.env.DEV && (
-            <p className="transaction-form__dev-hint">{SIGN_IN_HINT_DEV}</p>
-          )}
+          {formError.kind === 'unauthorized' ? <SessionEndedMessage /> : <p>{formError.message}</p>}
         </div>
       )}
 

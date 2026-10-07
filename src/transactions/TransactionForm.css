@@ -26,11 +26,12 @@
   p + p {
     margin-top: 6px;
   }
-}
 
-.transaction-form__dev-hint {
-  color: var(--text);
-  font-size: 14px;
+  a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
 }
 
 .transaction-form__status:not(:empty) {
