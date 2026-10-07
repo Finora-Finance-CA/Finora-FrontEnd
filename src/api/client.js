@@ -4,6 +4,7 @@
 //
 //   'validation'   400 with { errors: { field: message } }, in `fieldErrors`
 //   'unauthorized' 401, or no token to send
+//   'not_found'    404: the item doesn't exist, or belongs to another user
 //   'network'      the server couldn't be reached or took too long
 //   'server'       anything else (500, unexpected responses, other 4xx)
 
@@ -17,7 +18,7 @@ const TIMEOUT_MS = 20_000
 
 export class ApiError extends Error {
   /**
-   * @param {'validation'|'unauthorized'|'network'|'server'} kind
+   * @param {'validation'|'unauthorized'|'not_found'|'network'|'server'} kind
    * @param {string} message Plain-language message, safe to show to the user.
    * @param {{ status?: number, fieldErrors?: Record<string, string> }} [details]
    */
@@ -32,6 +33,7 @@ export class ApiError extends Error {
 
 const MESSAGES = {
   unauthorized: 'Your session has ended. Sign in again.',
+  not_found: "We couldn't find that. It may have been deleted.",
   network: "We couldn't reach the server. Check your connection and try again.",
   timeout: 'The server took too long to respond. Please try again.',
   server: 'Something went wrong on our end. Please try again in a moment.',
@@ -86,6 +88,10 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
 
   if (response.status === 401) {
     throw new ApiError('unauthorized', MESSAGES.unauthorized, { status: 401 })
+  }
+
+  if (response.status === 404) {
+    throw new ApiError('not_found', MESSAGES.not_found, { status: 404 })
   }
 
   if (response.status === 400 && data?.errors && typeof data.errors === 'object') {

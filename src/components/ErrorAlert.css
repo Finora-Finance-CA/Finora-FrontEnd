@@ -1,0 +1,15 @@
+.error-alert {
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 16px;
+  text-align: left;
+
+  a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+}

@@ -1,0 +1,95 @@
+.recent-transactions {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 48px;
+  text-align: left;
+
+  h2:focus {
+    outline: none;
+  }
+}
+
+.recent-transactions__message:not(:empty) {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  font-weight: 500;
+  color: var(--success);
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+}
+
+.recent-transactions__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.transaction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'details amount'
+    'actions actions';
+  gap: 8px 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+
+  @media (min-width: 640px) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'details amount actions';
+    align-items: center;
+  }
+}
+
+.transaction-row__details {
+  grid-area: details;
+  min-width: 0;
+}
+
+.transaction-row__description {
+  color: var(--text-h);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.transaction-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 15px;
+}
+
+.transaction-row__type {
+  font-weight: 600;
+}
+
+.transaction-row__amount {
+  grid-area: amount;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.transaction-row--income {
+  .transaction-row__amount,
+  .transaction-row__type {
+    color: var(--success);
+  }
+}
+
+.transaction-row__actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+}

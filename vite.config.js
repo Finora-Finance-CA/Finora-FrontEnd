@@ -11,4 +11,12 @@ export default defineConfig({
       '/api': 'http://localhost:4000',
     },
   },
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.{js,jsx}'],
+    // Adds the jest-dom matchers, swaps the Supabase client for a fake and cleans up
+    // the page between tests.
+    setupFiles: ['./src/test/setup.js'],
+    restoreMocks: true,
+  },
 })

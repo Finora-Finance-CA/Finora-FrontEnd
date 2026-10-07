@@ -18,4 +18,11 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Test helpers are never hot-reloaded, so Fast Refresh's export rule doesn't apply.
+    files: ['src/test/**', 'src/**/*.test.{js,jsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

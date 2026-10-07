@@ -1,0 +1,21 @@
+.delete-summary {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+
+  div {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  dt {
+    font-weight: 600;
+    color: var(--text-h);
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
