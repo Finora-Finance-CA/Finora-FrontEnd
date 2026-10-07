@@ -46,8 +46,8 @@ The app runs at http://localhost:5173.
 
 ## Switching to Supabase Auth: what to do after pulling
 1. Run `npm install` (`@supabase/supabase-js` was added).
-2. Update `.env` to match `.env.example`: add the two `VITE_SUPABASE_` variables, keep `VITE_API_URL` empty, and delete `VITE_DEV_TOKEN` if you have it.
-3. Register an account at `/register` to test. Dev tokens no longer work.
+2. Update `.env` to match `.env.example`: add the two `VITE_SUPABASE_` variables, keep `VITE_API_URL` empty, and remove any variable that isn't in `.env.example`.
+3. Register an account at `/register` to test.
 4. `BrowserRouter` moved from `App.jsx` to `main.jsx`, where it wraps `AuthProvider`. New routes still go in `App.jsx`.
 
 ## Routes
@@ -67,6 +67,7 @@ The app runs at http://localhost:5173.
 - `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route.
 - `src/auth/token.js` exports `getAuthToken()`, which returns the current Supabase access token. It is `async`, so always `await` it.
 - `src/api/client.js` (`apiRequest`) adds the token to every API request automatically. Use it for all API calls rather than calling `fetch` directly.
+- When a call fails with `err.kind === 'unauthorized'` (the API returned 401), show `<SessionEndedMessage />` from `src/components`. It says "Your session has ended. Sign in again.", and its link signs the user out and opens `/login`, which brings them back to the same page after logging in.
 
 Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 

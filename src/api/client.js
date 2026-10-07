@@ -31,7 +31,7 @@ export class ApiError extends Error {
 }
 
 const MESSAGES = {
-  unauthorized: 'Please sign in to continue. Your session may have expired.',
+  unauthorized: 'Your session has ended. Sign in again.',
   network: "We couldn't reach the server. Check your connection and try again.",
   timeout: 'The server took too long to respond. Please try again.',
   server: 'Something went wrong on our end. Please try again in a moment.',
