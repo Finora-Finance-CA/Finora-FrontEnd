@@ -28,6 +28,7 @@ import './TransactionForm.css'
  * @param {() => void} [props.onCancel] Shows a Cancel button that calls this.
  * @param {() => void} [props.onNotFound] See useTransactionForm.
  * @param {(isSubmitting: boolean) => void} [props.onSubmittingChange] See useTransactionForm.
+ * @param {{ current: HTMLElement|null }} [props.firstFieldRef] See useTransactionForm.
  */
 export default function TransactionForm({
   type,
@@ -37,11 +38,12 @@ export default function TransactionForm({
   onCancel,
   onNotFound,
   onSubmittingChange,
+  firstFieldRef,
 }) {
   const { label, title, submitLabel, fields } = TRANSACTION_TYPES[type]
   const isEditing = Boolean(transaction)
   const { values, errors, formError, successMessage, isSubmitting, fieldProps, handleSubmit } =
-    useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange })
+    useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange, firstFieldRef })
 
   // Unique per form, so the add form and an edit dialog can be on the page together.
   // The same input stays in place when the type changes, so ids don't include it.

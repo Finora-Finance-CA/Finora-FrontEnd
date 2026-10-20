@@ -1,3 +1,4 @@
+import CategoryLabel from './CategoryLabel'
 import { TRANSACTION_TYPES } from './constants'
 import { formatDate } from './dates'
 import { formatCents } from './money'
@@ -26,7 +27,7 @@ export default function TransactionListItem({ transaction, onEdit, onDelete }) {
         <p className="transaction-row__meta">
           <time dateTime={date}>{displayDate}</time>
           <span className="transaction-row__type">{typeLabel}</span>
-          {category && <span>{category}</span>}
+          {category && <CategoryLabel category={category} />}
         </p>
       </div>
       <p className="transaction-row__amount">

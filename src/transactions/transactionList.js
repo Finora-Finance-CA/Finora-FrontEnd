@@ -1,28 +1,11 @@
-// Keeps the on-screen list in the same order and length as GET /api/transactions
-// after a local add, edit or delete, without asking the API again.
+// Quick local changes to the page of transactions on screen, shown straight away while
+// the page is loaded again from the API. The API decides the order and which page
+// each transaction is on (search, filters and paging all happen there), so these only
+// patch what is already showing; the reload that follows puts everything in place.
 
-import { TRANSACTION_LIST_LIMIT } from './constants'
-
-// Ids are BIGINTs sent as digit strings, so a longer id is always a bigger number.
-function compareIds(a, b) {
-  if (a.length !== b.length) return a.length - b.length
-  return a < b ? -1 : a > b ? 1 : 0
-}
-
-function compareText(a, b) {
-  return a < b ? -1 : a > b ? 1 : 0
-}
-
-/** Sort comparator matching the API: newest date first, then newest created, then highest id. */
-export function compareNewestFirst(a, b) {
-  return compareText(b.date, a.date) || compareText(b.created_at, a.created_at) || compareIds(b.id, a.id)
-}
-
-/** The list with `transaction` added, or replacing the one with the same id, in API order. */
-export function upsertTransaction(list, transaction) {
-  return [...list.filter(({ id }) => id !== transaction.id), transaction]
-    .sort(compareNewestFirst)
-    .slice(0, TRANSACTION_LIST_LIMIT)
+/** The list with the transaction that has the same id replaced, in the same position. */
+export function replaceTransaction(list, transaction) {
+  return list.map((item) => (item.id === transaction.id ? transaction : item))
 }
 
 /** The list without the transaction with this id. */

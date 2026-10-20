@@ -1,13 +1,14 @@
-// The transactions page as a user sees it: the list, adding, editing and deleting.
-// The API module is mocked; nothing leaves the test.
+// The transactions page as a user sees it: the list and its states, paging, search
+// and filters, and adding, editing and deleting. The API module is mocked; nothing
+// leaves the test.
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import { createTransaction, deleteTransaction, listTransactions, updateTransaction } from '../api/transactions'
 import { endSession } from '../test/fakeSupabase'
-import { currentPath, renderApp } from '../test/renderApp'
-import { makeTransaction, savedFrom } from '../test/transactions'
+import { currentPath, currentSearch, renderApp } from '../test/renderApp'
+import { makeTransaction, NO_FILTERS, pageOf, savedFrom } from '../test/transactions'
 
 vi.mock('../api/transactions')
 
@@ -37,19 +38,23 @@ function deferred() {
   return { promise, resolve, reject }
 }
 
+function transactionList() {
+  return screen.getByRole('list')
+}
+
 function rowFor(description) {
-  return within(screen.getByRole('list')).getByText(description).closest('li')
+  return within(transactionList()).getByText(description).closest('li')
 }
 
 function descriptionsInList() {
-  return within(screen.getByRole('list'))
+  return within(transactionList())
     .getAllByRole('listitem')
     .map((row) => row.querySelector('.transaction-row__description').textContent)
 }
 
-async function showList(transactions = [LUNCH, SALARY, RENT]) {
-  listTransactions.mockResolvedValue(transactions)
-  renderApp()
+async function showList(transactions = [LUNCH, SALARY, RENT], path) {
+  listTransactions.mockResolvedValue(pageOf(transactions))
+  renderApp(path)
   await screen.findByRole('list')
 }
 
@@ -57,11 +62,35 @@ function statusMessage() {
   return screen.getAllByRole('status').map((element) => element.textContent).join(' ')
 }
 
+function lastQuery() {
+  return listTransactions.mock.lastCall[0]
+}
+
+function searchBox() {
+  return screen.getByRole('searchbox', { name: 'Search descriptions' })
+}
+
+function historyHeading() {
+  return screen.getByRole('heading', { name: 'Transaction history' })
+}
+
+/** n transactions with descriptions "t1" to "tn", for paging tests. */
+function manyTransactions(n, start = 1) {
+  return Array.from({ length: n }, (_, i) => makeTransaction({ id: String(500 + start + i), description: `t${start + i}` }))
+}
+
 beforeEach(() => {
-  listTransactions.mockResolvedValue([])
+  // vi.mock's functions keep queued mockResolvedValueOnce values between tests, so
+  // start each test from nothing.
+  for (const mock of [createTransaction, deleteTransaction, listTransactions, updateTransaction]) mock.mockReset()
+  listTransactions.mockResolvedValue(pageOf([]))
 })
 
-describe('Recent transactions list', () => {
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe('transaction list states', () => {
   it('shows a loading message while the list loads', async () => {
     listTransactions.mockReturnValue(deferred().promise)
     renderApp()
@@ -69,27 +98,57 @@ describe('Recent transactions list', () => {
     expect(await screen.findByText('Loading transactions…')).toBeInTheDocument()
   })
 
-  it('says when there are no transactions yet', async () => {
-    renderApp()
+  it('asks for the first page with no filters', async () => {
+    await showList()
 
-    expect(await screen.findByText('No transactions yet. Add one above and it will show here.')).toBeInTheDocument()
+    expect(listTransactions).toHaveBeenCalledWith(NO_FILTERS)
   })
 
-  it('shows each transaction newest first, with date, type, category, description and amount', async () => {
-    await showList([RENT, LUNCH, SALARY])
+  it('offers to add a first transaction when there are none, and the button goes to the form', async () => {
+    renderApp()
+
+    expect(await screen.findByText("You haven't added any transactions yet.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add your first transaction' }))
+
+    expect(screen.getByLabelText('Amount ($)')).toHaveFocus()
+  })
+
+  it('shows each transaction in the API’s order, with date, type, category, description and amount', async () => {
+    await showList([LUNCH, SALARY, RENT])
 
     expect(descriptionsInList()).toEqual(['Lunch', 'Salary', 'Rent'])
 
     const lunch = rowFor('Lunch')
     expect(lunch).toHaveTextContent('Oct 5, 2026')
     expect(lunch).toHaveTextContent('Expense')
-    expect(lunch).toHaveTextContent('Food')
     expect(lunch).toHaveTextContent('−$12.50')
+    expect(within(lunch).getByText('Food')).toHaveClass('category-label')
 
     const salary = rowFor('Salary')
     expect(salary).toHaveTextContent('Income')
     expect(salary).toHaveTextContent('+$2,000.00')
-    expect(salary).not.toHaveTextContent('Food')
+    expect(salary.querySelector('.category-label')).toBeNull()
+  })
+
+  it('marks income and expenses differently, with text and a sign as well as colour', async () => {
+    await showList([LUNCH, SALARY])
+
+    expect(rowFor('Salary')).toHaveClass('transaction-row--income')
+    expect(rowFor('Lunch')).toHaveClass('transaction-row--expense')
+    expect(within(rowFor('Salary')).getByText('Income')).toBeInTheDocument()
+    expect(within(rowFor('Lunch')).getByText('Expense')).toBeInTheDocument()
+  })
+
+  it('shows a category label on an income that has one', async () => {
+    await showList([makeTransaction({ type: 'income', category: 'Other', description: 'Refund' })])
+
+    expect(within(rowFor('Refund')).getByText('Other')).toHaveClass('category-label')
+  })
+
+  it('says how many transactions there are', async () => {
+    await showList()
+
+    expect(statusMessage()).toContain('Showing 3 transactions.')
   })
 
   it('names the transaction on every Edit and Delete button for screen readers', async () => {
@@ -107,7 +166,7 @@ describe('Recent transactions list', () => {
 
   it('shows an error with Try again, which loads the list again', async () => {
     listTransactions.mockRejectedValueOnce(new ApiError('network', "We couldn't reach the server. Check your connection and try again."))
-    listTransactions.mockResolvedValueOnce([LUNCH])
+    listTransactions.mockResolvedValueOnce(pageOf([LUNCH]))
     renderApp()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -138,19 +197,282 @@ describe('Recent transactions list', () => {
   })
 })
 
+describe('paging (US-22)', () => {
+  it('shows which transactions are on screen and Previous and Next', async () => {
+    listTransactions.mockResolvedValue(pageOf(manyTransactions(20), { total_count: 45 }))
+    renderApp()
+
+    const pages = await screen.findByRole('navigation', { name: 'Transaction pages' })
+    expect(statusMessage()).toContain('Showing 1 to 20 of 45 transactions.')
+    expect(pages).toHaveTextContent('Page 1 of 3')
+    expect(within(pages).getByRole('button', { name: 'Previous page' })).toBeDisabled()
+    expect(within(pages).getByRole('button', { name: 'Next page' })).toBeEnabled()
+  })
+
+  it('loads the next page, puts it in the URL and moves focus to the top of the list', async () => {
+    listTransactions.mockResolvedValueOnce(pageOf(manyTransactions(20), { total_count: 45 }))
+    listTransactions.mockResolvedValueOnce(pageOf(manyTransactions(20, 21), { page: 2, total_count: 45 }))
+    renderApp()
+    await screen.findByText('t1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+
+    expect(await screen.findByText('t21')).toBeInTheDocument()
+    expect(lastQuery()).toEqual({ ...NO_FILTERS, page: 2 })
+    expect(currentPath()).toBe('/transactions')
+    expect(currentSearch()).toBe('?page=2')
+    expect(statusMessage()).toContain('Showing 21 to 40 of 45 transactions.')
+    expect(historyHeading()).toHaveFocus()
+  })
+
+  it('opens the page given in the URL, and Previous goes back one', async () => {
+    listTransactions.mockResolvedValueOnce(pageOf(manyTransactions(5, 41), { page: 3, total_count: 45 }))
+    listTransactions.mockResolvedValueOnce(pageOf(manyTransactions(20, 21), { page: 2, total_count: 45 }))
+    renderApp('/transactions?page=3')
+    await screen.findByText('t41')
+
+    expect(listTransactions).toHaveBeenCalledWith({ ...NO_FILTERS, page: 3 })
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }))
+
+    expect(await screen.findByText('t21')).toBeInTheDocument()
+    expect(lastQuery()).toEqual({ ...NO_FILTERS, page: 2 })
+  })
+
+  it('has no paging controls when everything fits on one page', async () => {
+    await showList()
+
+    expect(screen.queryByRole('navigation', { name: 'Transaction pages' })).not.toBeInTheDocument()
+  })
+
+  it('ignores a page number in the URL that is not a whole number', async () => {
+    await showList([LUNCH], '/transactions?page=abc')
+
+    expect(listTransactions).toHaveBeenCalledWith(NO_FILTERS)
+  })
+
+  it('steps back a page when a delete empties the last one', async () => {
+    const onlyOne = makeTransaction({ id: '99', description: 'Last one' })
+    listTransactions.mockResolvedValueOnce(pageOf([onlyOne], { page: 3, total_count: 41 }))
+    listTransactions.mockResolvedValueOnce(pageOf([], { page: 3, total_count: 40 }))
+    listTransactions.mockResolvedValueOnce(pageOf(manyTransactions(20, 21), { page: 2, total_count: 40 }))
+    deleteTransaction.mockResolvedValue(undefined)
+    renderApp('/transactions?page=3')
+    await screen.findByText('Last one')
+
+    fireEvent.click(within(rowFor('Last one')).getByRole('button', { name: /^Delete/ }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('t21')).toBeInTheDocument()
+    expect(listTransactions).toHaveBeenLastCalledWith({ ...NO_FILTERS, page: 2 })
+    expect(screen.queryByText("You haven't added any transactions yet.")).not.toBeInTheDocument()
+  })
+})
+
+describe('search (US-23)', () => {
+  it('searches 300ms after the last keystroke, from page 1', async () => {
+    await showList([LUNCH], '/transactions?page=2')
+    vi.useFakeTimers()
+    const callsBefore = listTransactions.mock.calls.length
+
+    fireEvent.change(searchBox(), { target: { value: 'Lun' } })
+    act(() => vi.advanceTimersByTime(200))
+    fireEvent.change(searchBox(), { target: { value: 'Lunch' } })
+    act(() => vi.advanceTimersByTime(299))
+    expect(listTransactions).toHaveBeenCalledTimes(callsBefore)
+
+    act(() => vi.advanceTimersByTime(1))
+    expect(listTransactions).toHaveBeenCalledTimes(callsBefore + 1)
+    expect(lastQuery()).toEqual({ ...NO_FILTERS, q: 'Lunch' })
+  })
+
+  it('searches straight away on Enter', async () => {
+    await showList()
+
+    fireEvent.change(searchBox(), { target: { value: '  rent ' } })
+    fireEvent.submit(screen.getByRole('search', { name: 'Search and filter transactions' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, q: 'rent' }))
+  })
+
+  it('keeps the search from the URL in the box', async () => {
+    await showList([LUNCH], '/transactions?q=lunch')
+
+    expect(searchBox()).toHaveValue('lunch')
+    expect(listTransactions).toHaveBeenCalledWith({ ...NO_FILTERS, q: 'lunch' })
+    expect(statusMessage()).toContain('Showing 1 transaction that match your search and filters.')
+  })
+
+  it('says when nothing matches, and Clear all filters brings the list back', async () => {
+    listTransactions.mockImplementation(async (query) => (query.q ? pageOf([]) : pageOf([LUNCH, SALARY])))
+    renderApp('/transactions?q=zzz')
+
+    expect(await screen.findByText('No transactions match your search and filters.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }))
+
+    expect(await screen.findByText('Lunch')).toBeInTheDocument()
+    expect(lastQuery()).toEqual(NO_FILTERS)
+    expect(searchBox()).toHaveValue('')
+    expect(searchBox()).toHaveFocus()
+  })
+})
+
+describe('category filter (US-24)', () => {
+  it('shows only the chosen categories, and adding one keeps the first', async () => {
+    await showList()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Housing' }))
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Housing'] }))
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food', 'Housing'] }))
+    expect(screen.getByRole('checkbox', { name: 'Food' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Housing' })).toBeChecked()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Housing' }))
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food'] }))
+  })
+
+  it('reads categories from the URL and drops unknown ones', async () => {
+    await showList([RENT], '/transactions?category=Housing&category=Bogus')
+
+    expect(listTransactions).toHaveBeenCalledWith({ ...NO_FILTERS, categories: ['Housing'] })
+    expect(screen.getByRole('checkbox', { name: 'Housing' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Food' })).not.toBeChecked()
+  })
+
+  it('groups the category checkboxes under one label', async () => {
+    await showList()
+
+    expect(screen.getByRole('group', { name: 'Categories (choose any)' })).toBeInTheDocument()
+  })
+
+  it('goes back to page 1 when a category is chosen', async () => {
+    await showList([LUNCH], '/transactions?page=2')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food'] }))
+  })
+})
+
+describe('date range filter (US-25)', () => {
+  it('sends the From and To dates', async () => {
+    await showList()
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-01' } })
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-01' }))
+
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-30' } })
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-01', to: '2026-09-30' }))
+  })
+
+  it('explains a To date before the From date, and does not ask the API', async () => {
+    await showList([LUNCH], '/transactions?from=2026-09-30')
+    const calls = listTransactions.mock.calls.length
+
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-01' } })
+
+    expect(await screen.findByText('The To date is before the From date. Change one of them to see your transactions.')).toBeInTheDocument()
+    expect(screen.getByLabelText('To')).toHaveAccessibleDescription('Choose a date on or after the From date.')
+    expect(screen.getByLabelText('To')).toHaveAttribute('aria-invalid', 'true')
+    expect(listTransactions).toHaveBeenCalledTimes(calls)
+  })
+
+  it('ignores a date in the URL that is not a real date', async () => {
+    await showList([LUNCH], '/transactions?from=2026-02-30&to=soon')
+
+    expect(listTransactions).toHaveBeenCalledWith(NO_FILTERS)
+  })
+})
+
+describe('search and filters together, and Clear all (US-26)', () => {
+  const EVERYTHING = '/transactions?q=lunch&category=Food&category=Other&from=2026-09-01&to=2026-09-30&page=2'
+
+  it('sends every filter at once and shows them all on the form', async () => {
+    await showList([LUNCH], EVERYTHING)
+
+    expect(listTransactions).toHaveBeenCalledWith({
+      page: 2,
+      q: 'lunch',
+      categories: ['Food', 'Other'],
+      from: '2026-09-01',
+      to: '2026-09-30',
+    })
+    expect(searchBox()).toHaveValue('lunch')
+    expect(screen.getByRole('checkbox', { name: 'Food' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Other' })).toBeChecked()
+    expect(screen.getByLabelText('From')).toHaveValue('2026-09-01')
+    expect(screen.getByLabelText('To')).toHaveValue('2026-09-30')
+  })
+
+  it('keeps the other filters when one changes', async () => {
+    await showList([LUNCH], EVERYTHING)
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Other' }))
+
+    await waitFor(() =>
+      expect(lastQuery()).toEqual({ page: 1, q: 'lunch', categories: ['Food'], from: '2026-09-01', to: '2026-09-30' })
+    )
+  })
+
+  it('Clear all resets search, categories, dates and page, and focuses the search box', async () => {
+    await showList([LUNCH], EVERYTHING)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual(NO_FILTERS))
+    expect(searchBox()).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: 'Food' })).not.toBeChecked()
+    expect(screen.getByLabelText('From')).toHaveValue('')
+    expect(screen.getByLabelText('To')).toHaveValue('')
+    expect(searchBox()).toHaveFocus()
+  })
+
+  it('Clear all also clears search text that has not been searched yet', async () => {
+    await showList()
+    fireEvent.change(searchBox(), { target: { value: 'half typed' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+
+    expect(searchBox()).toHaveValue('')
+  })
+
+  it('disables Clear all when there is nothing to clear', async () => {
+    await showList()
+
+    expect(screen.getByRole('button', { name: 'Clear all' })).toBeDisabled()
+  })
+})
+
 describe('adding a transaction', () => {
-  it('shows the new transaction in the list without reloading it', async () => {
+  it('loads the list again so the new transaction shows', async () => {
+    const coffee = makeTransaction({ id: '50', description: 'Coffee', date: '2026-10-09' })
     createTransaction.mockImplementation(async (payload) => savedFrom(payload, { id: '50', date: '2026-10-09' }))
     await showList()
+    listTransactions.mockResolvedValue(pageOf([coffee, LUNCH, SALARY, RENT]))
 
     fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '4.75' } })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } })
     fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: 'Coffee' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
-    expect(await screen.findByText('Coffee')).toBeInTheDocument()
+    expect(await within(transactionList()).findByText('Coffee')).toBeInTheDocument()
     expect(descriptionsInList()).toEqual(['Coffee', 'Lunch', 'Salary', 'Rent'])
-    expect(listTransactions).toHaveBeenCalledTimes(1)
+    expect(listTransactions).toHaveBeenCalledTimes(2)
+    expect(lastQuery()).toEqual(NO_FILTERS)
+  })
+
+  it('keeps the current filters and page when it reloads', async () => {
+    createTransaction.mockImplementation(async (payload) => savedFrom(payload))
+    await showList([LUNCH], '/transactions?category=Food&page=2')
+
+    fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '4.75' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+    await waitFor(() => expect(listTransactions).toHaveBeenCalledTimes(2))
+    expect(lastQuery()).toEqual({ ...NO_FILTERS, page: 2, categories: ['Food'] })
   })
 
   it('does not let a slow, older list response hide a transaction added meanwhile', async () => {
@@ -167,8 +489,8 @@ describe('adding a transaction', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
     await screen.findByText('Expense of $4.75 saved.')
 
-    await act(async () => secondLoad.resolve([coffee, LUNCH]))
-    await act(async () => firstLoad.resolve([LUNCH]))
+    await act(async () => secondLoad.resolve(pageOf([coffee, LUNCH])))
+    await act(async () => firstLoad.resolve(pageOf([LUNCH])))
 
     expect(descriptionsInList()).toEqual(['Coffee', 'Lunch'])
   })
@@ -196,6 +518,22 @@ describe('editing a transaction', () => {
     expect(within(dialog).getByLabelText('Amount ($)')).toHaveFocus()
   })
 
+  it('lists every category in the edit dialog’s dropdown', async () => {
+    await showList()
+
+    const dialog = await openEdit('Lunch')
+
+    const options = within(within(dialog).getByLabelText('Category')).getAllByRole('option')
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Choose a category',
+      'Food',
+      'Transportation',
+      'Housing',
+      'Entertainment',
+      'Other',
+    ])
+  })
+
   it('makes the page behind the dialog inert', async () => {
     await showList()
 
@@ -214,9 +552,11 @@ describe('editing a transaction', () => {
     expect(within(dialog).getByLabelText('Amount ($)')).toHaveValue('2000.00')
   })
 
-  it('saves every changed field and shows the change in the right place at once', async () => {
+  it('shows the change in its row at once, then reloads the page to put it in place', async () => {
     updateTransaction.mockImplementation(async (id, payload) => savedFrom(payload, { id }))
     await showList()
+    const reload = deferred()
+    listTransactions.mockReturnValue(reload.promise)
     const dialog = await openEdit('Rent')
 
     fireEvent.change(within(dialog).getByLabelText('Amount ($)'), { target: { value: '1,000.50' } })
@@ -233,13 +573,17 @@ describe('editing a transaction', () => {
       category: 'Other',
       description: 'Rent and parking',
     })
-    expect(descriptionsInList()).toEqual(['Rent and parking', 'Lunch', 'Salary'])
+    expect(descriptionsInList()).toEqual(['Lunch', 'Salary', 'Rent and parking'])
     const row = rowFor('Rent and parking')
     expect(row).toHaveTextContent('Oct 8, 2026')
     expect(row).toHaveTextContent('Other')
     expect(row).toHaveTextContent('−$1,000.50')
     expect(statusMessage()).toContain('Transaction updated.')
     await waitFor(() => expect(within(row).getByRole('button', { name: /^Edit/ })).toHaveFocus())
+
+    const moved = savedFrom({ amount_cents: 100050, date: '2026-10-08', type: 'expense', category: 'Other', description: 'Rent and parking' }, { id: '3' })
+    await act(async () => reload.resolve(pageOf([moved, LUNCH, SALARY])))
+    expect(descriptionsInList()).toEqual(['Rent and parking', 'Lunch', 'Salary'])
   })
 
   it('clears the description when it is emptied', async () => {
@@ -304,6 +648,7 @@ describe('editing a transaction', () => {
   it('removes the row and says so when the transaction no longer exists', async () => {
     updateTransaction.mockRejectedValue(NOT_FOUND)
     await showList()
+    listTransactions.mockResolvedValue(pageOf([SALARY, RENT]))
     const dialog = await openEdit('Lunch')
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }))
@@ -311,7 +656,7 @@ describe('editing a transaction', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.queryByText('Lunch')).not.toBeInTheDocument()
     expect(statusMessage()).toContain('That transaction no longer exists, so it was removed from the list.')
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Recent transactions' })).toHaveFocus())
+    await waitFor(() => expect(historyHeading()).toHaveFocus())
   })
 
   it('keeps the dialog, the typed values and the row when saving fails for another reason', async () => {
@@ -407,9 +752,10 @@ describe('deleting a transaction', () => {
     await waitFor(() => expect(within(rowFor('Rent')).getByRole('button', { name: /^Delete/ })).toHaveFocus())
   })
 
-  it('removes the transaction from the list once confirmed', async () => {
+  it('removes the transaction at once, then reloads the same page', async () => {
     deleteTransaction.mockResolvedValue(undefined)
     await showList()
+    listTransactions.mockReturnValue(deferred().promise)
     const dialog = await openDelete('Rent')
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
@@ -418,12 +764,15 @@ describe('deleting a transaction', () => {
     expect(deleteTransaction).toHaveBeenCalledWith('3')
     expect(descriptionsInList()).toEqual(['Lunch', 'Salary'])
     expect(statusMessage()).toContain('Transaction deleted.')
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Recent transactions' })).toHaveFocus())
+    expect(listTransactions).toHaveBeenCalledTimes(2)
+    expect(lastQuery()).toEqual(NO_FILTERS)
+    await waitFor(() => expect(historyHeading()).toHaveFocus())
   })
 
   it('removes the row and says so when it was already deleted', async () => {
     deleteTransaction.mockRejectedValue(NOT_FOUND)
     await showList()
+    listTransactions.mockResolvedValue(pageOf([LUNCH, SALARY]))
     const dialog = await openDelete('Rent')
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))

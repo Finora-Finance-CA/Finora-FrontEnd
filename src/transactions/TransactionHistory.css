@@ -1,4 +1,4 @@
-.recent-transactions {
+.transaction-history {
   width: 100%;
   max-width: 720px;
   margin-top: 48px;
@@ -9,7 +9,7 @@
   }
 }
 
-.recent-transactions__message:not(:empty) {
+.transaction-history__message:not(:empty) {
   margin-bottom: 12px;
   padding: 10px 12px;
   font-weight: 500;
@@ -19,11 +19,31 @@
   border-radius: 6px;
 }
 
-.recent-transactions__error {
+.transaction-history__error {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
+}
+
+.transaction-history__summary {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.transaction-history__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 16px;
+  border: 1px dashed var(--field-border);
+  border-radius: 10px;
+
+  p {
+    color: var(--text-h);
+    font-weight: 500;
+  }
 }
 
 .transaction-list {
@@ -31,6 +51,12 @@
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--border);
+}
+
+/* The previous page stays readable while the next one loads. No animation, so
+   nothing moves for people who prefer reduced motion. */
+.transaction-list--refreshing {
+  opacity: 0.6;
 }
 
 .transaction-row {
@@ -64,6 +90,7 @@
 .transaction-row__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 12px;
   font-size: 15px;
 }

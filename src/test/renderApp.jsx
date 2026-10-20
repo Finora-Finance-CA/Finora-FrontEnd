@@ -4,7 +4,12 @@ import App from '../App'
 import { AuthProvider } from '../context/AuthContext'
 
 function CurrentPath() {
-  return <output data-testid="current-path">{useLocation().pathname}</output>
+  const { pathname, search } = useLocation()
+  return (
+    <output data-testid="current-path" data-search={search}>
+      {pathname}
+    </output>
+  )
 }
 
 /**
@@ -25,4 +30,9 @@ export function renderApp(path = '/transactions') {
 /** The path the app is showing now. */
 export function currentPath() {
   return screen.getByTestId('current-path').textContent
+}
+
+/** The query string the app is showing now, e.g. "?page=2", or '' for none. */
+export function currentSearch() {
+  return screen.getByTestId('current-path').dataset.search
 }

@@ -7,14 +7,14 @@ import { createTransaction, listTransactions } from './api/transactions'
 import { ApiError } from './api/client'
 import { endSession, fakeAuth, resetFakeSupabase } from './test/fakeSupabase'
 import { currentPath, renderApp } from './test/renderApp'
-import { savedFrom } from './test/transactions'
+import { pageOf, savedFrom } from './test/transactions'
 
 vi.mock('./api/transactions')
 
 const SESSION_ENDED = new ApiError('unauthorized', 'Your session has ended. Sign in again.', { status: 401 })
 
 beforeEach(() => {
-  listTransactions.mockResolvedValue([])
+  listTransactions.mockResolvedValue(pageOf([]))
 })
 
 async function fillExpense({ amount = '12.50', category = 'Food' } = {}) {

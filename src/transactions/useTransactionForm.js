@@ -34,8 +34,10 @@ function valuesFrom(transaction) {
  *   the transaction being edited no longer exists.
  * @param {(isSubmitting: boolean) => void} [options.onSubmittingChange] Called when a
  *   save starts and ends, e.g. so a dialog can't be closed part-way through.
+ * @param {{ current: HTMLElement|null }} [options.firstFieldRef] Set to the form's first
+ *   input (Amount), so the page can move focus there.
  */
-export function useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange }) {
+export function useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange, firstFieldRef }) {
   const { label, fields } = TRANSACTION_TYPES[type]
   const [values, setValues] = useState(() => (transaction ? valuesFrom(transaction) : emptyValues()))
   const [errors, setErrors] = useState({})
@@ -165,6 +167,7 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
       onChange: handleChange,
       ref: (element) => {
         inputRefs.current[field] = element
+        if (firstFieldRef && field === fields[0]) firstFieldRef.current = element
       },
     }
   }

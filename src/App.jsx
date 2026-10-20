@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import TransactionsPage from './pages/TransactionsPage';
 import AuthPage from './pages/AuthPage';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
 
