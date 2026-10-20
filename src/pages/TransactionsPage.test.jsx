@@ -464,7 +464,9 @@ describe('adding a transaction', () => {
 
     expect(await within(transactionList()).findByText('Coffee')).toBeInTheDocument()
     expect(descriptionsInList()).toEqual(['Coffee', 'Lunch', 'Salary', 'Rent'])
-    expect(listTransactions).toHaveBeenCalledTimes(2)
+    // The new row shows straight away; the reload starts in an effect, which can run in
+    // a later task.
+    await waitFor(() => expect(listTransactions).toHaveBeenCalledTimes(2))
     expect(lastQuery()).toEqual(NO_FILTERS)
   })
 
@@ -769,7 +771,9 @@ describe('deleting a transaction', () => {
     expect(deleteTransaction).toHaveBeenCalledWith('3')
     expect(descriptionsInList()).toEqual(['Lunch', 'Salary'])
     expect(statusMessage()).toContain('Transaction deleted.')
-    expect(listTransactions).toHaveBeenCalledTimes(2)
+    // The row goes straight away; the reload starts in an effect, which can run in a
+    // later task.
+    await waitFor(() => expect(listTransactions).toHaveBeenCalledTimes(2))
     expect(lastQuery()).toEqual(NO_FILTERS)
     await waitFor(() => expect(historyHeading()).toHaveFocus())
   })
@@ -791,14 +795,18 @@ describe('deleting a transaction', () => {
     deleteTransaction.mockRejectedValue(SERVER_ERROR)
     await showList()
     const dialog = await openDelete('Rent')
+    // A real click focuses the button; fireEvent.click doesn't.
+    const deleteButton = within(dialog).getByRole('button', { name: 'Delete' })
+    deleteButton.focus()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(deleteButton)
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'The transaction was not deleted. Something went wrong on our end. Please try again in a moment.'
     )
     expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeEnabled()
-    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    // Focus moves in an effect after the error shows, which can run in a later task.
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus())
     expect(rowFor('Rent')).toBeInTheDocument()
   })
 
