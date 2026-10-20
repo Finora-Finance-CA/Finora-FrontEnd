@@ -3,7 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { AuthProvider } from './context/AuthContext';
 import App from './App.jsx';
+import { reloadOnStaleChunk } from './lib/staleChunks';
 import './index.css';
+
+reloadOnStaleChunk();
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
