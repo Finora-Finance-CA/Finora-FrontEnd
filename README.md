@@ -24,11 +24,11 @@ The project uses Node 22. Use `nvm use 22` as shown: nvm-windows ignores `.nvmrc
 
 Fill in `.env` (real values are in the team's credential document):
 
-| Variable | Value |
-| --- | --- |
-| `VITE_API_URL` | Leave **empty** in development. Requests go to `/api` and Vite proxies them to `http://localhost:4000` (see `vite.config.js`). |
-| `VITE_SUPABASE_URL` | `https://<project-id>.supabase.co` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's publishable key (`sb_publishable_...`) |
+| Variable | Required | Value |
+| --- | --- | --- |
+| `VITE_API_URL` | In production only | Leave **empty** in development. Requests go to `/api` and Vite proxies them to `http://localhost:4000` (see `vite.config.js`). In production, the API's address (see [Deployment](#deployment)). |
+| `VITE_SUPABASE_URL` | Yes | `https://<project-id>.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes | The project's publishable key (`sb_publishable_...`) |
 
 Use `.env` only (not `.env.development.local`), so everyone has the same setup. Restart `npm run dev` after changing it; Vite only reads `.env` on startup.
 
@@ -73,7 +73,7 @@ Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only
 - `src/components/GuestRoute.jsx` sends signed-in users away from `/login` and `/register`.
 - `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route.
 - `src/auth/token.js` exports `getAuthToken()`, which returns the current Supabase access token. It is `async`, so always `await` it.
-- `src/api/client.js` (`apiRequest`) adds the token to every API request automatically. Use it for all API calls rather than calling `fetch` directly.
+- `src/api/client.js` (`apiRequest`) adds the token to every API request automatically, and `src/api/url.js` builds its URL from `VITE_API_URL`. Use it for all API calls rather than calling `fetch` directly.
 - When a call fails with `err.kind === 'unauthorized'` (the API returned 401), show `<SessionEndedMessage />` from `src/components`. It says "Your session has ended. Sign in again.", and its link signs the user out and opens `/login`, which brings them back to the same page after logging in.
 - `<ErrorAlert error={err} context="..." />` from `src/components` shows any failed request: `SessionEndedMessage` for a 401, the `ApiError`'s plain-language message otherwise, and a generic message for anything unexpected, so raw error text never reaches the screen. A 404 has `err.kind === 'not_found'`.
 
@@ -159,6 +159,7 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 - `src/test/setup.js` runs first in every file. It adds the jest-dom matchers (`toBeInTheDocument`, `toHaveFocus`, ...), replaces `src/lib/supabase.js` with `src/test/fakeSupabase.js` (signed in by default; `resetFakeSupabase({ session: null })` signs out), and cleans up after each test.
 - Tests that render pages mock the API modules (`vi.mock('../api/transactions')`, `'../api/summary'`, `'../api/budgets'`) and set what each function returns. Reset the mocks in `beforeEach`: `restoreMocks` doesn't clear queued `mockResolvedValueOnce` values. Summary tests fix the clock with `vi.useFakeTimers({ toFake: ['Date'] })`, so only dates are faked. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
 - `renderApp(path)` from `src/test/renderApp.jsx` renders the whole app (routes and `AuthProvider`) at a path, so tests use the page the way a user does. `currentPath()` and `currentSearch()` say where the app is now. Pages are lazy-loaded, so use `findBy...` for the first thing on a page; `setup.js` gives those waits up to 5 seconds.
+- `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
 
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
@@ -168,6 +169,61 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 2. Add a lazy route in `App.jsx`, wrapped in `<ProtectedRoute>`, and a link in `AppHeader.jsx` if it belongs in the main navigation.
 3. Call the API with `apiRequest` from `src/api/client.js`.
 4. Get the current user with `useAuth()` if the page needs it.
+
+## Deployment
+The front-end runs on **Vercel**, set up by `vercel.json` in this repo. The API runs on Render; see the Deployment section in [Finora-API](https://github.com/Finora-Finance-CA/Finora-API#deployment), which also covers Supabase. Vercel builds the static site from GitHub, so there's nothing to run on your machine.
+
+### 1. Order of operations
+1. Deploy the API on Render first and note its URL, for example `https://finora-api.onrender.com`.
+2. Deploy this repo on Vercel with `VITE_API_URL` set to that URL (step 2).
+3. Put the front-end's URL in the API's `CLIENT_ORIGIN` on Render (Finora-API, Deployment, step 2.7).
+4. Set the Supabase Auth Site URL and redirect URLs to the front-end's URL (Finora-API, Deployment, step 3).
+5. Verify (step 3 below).
+
+### 2. Create the Vercel project
+1. In Vercel: **Add New**, then **Project**. Import `Finora-Finance-CA/Finora-FrontEnd` (give Vercel access to the organisation if it isn't listed).
+2. Vercel reads `vercel.json`. Leave the build settings as they are:
+   - Framework: Vite
+   - Install command: `npm ci`
+   - Build command: `npm run build`
+   - Output directory: `dist`
+3. Under **Environment Variables**, add these three for **Production** (and **Preview** if you want preview links to work):
+
+   | Variable | Value |
+   | --- | --- |
+   | `VITE_API_URL` | The Render URL, for example `https://finora-api.onrender.com`. No `/api` on the end. |
+   | `VITE_SUPABASE_URL` | `https://<project-id>.supabase.co` |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | The publishable key (`sb_publishable_...`). Never the secret key. |
+
+   These are built into the public JavaScript, so they must only ever be values that are safe to show. Never add `DATABASE_URL` or any API secret here.
+4. Click **Deploy**. When it's done, the project's URL is shown, for example `https://finora.vercel.app`. That exact origin goes in the API's `CLIENT_ORIGIN`.
+5. In **Settings**, **Build and Deployment**, check **Node.js Version** is **22.x** (`engines` in `package.json` asks for it).
+6. In **Settings**, **Git**, the production branch is the repo's default branch (`main`). Change it to `develop` if you're deploying before `develop` is merged into `main`.
+
+**How refreshes work:** `vercel.json` sends every path that isn't a file to `index.html`, so `/transactions`, `/summary?month=2026-09` and `/budgets` load the app on a refresh or a shared link, and React Router shows the page. Paths under `/assets/` and `/api/` are left alone, so a missing file is a real `404` instead of the app's HTML.
+
+**How pages load:** each page is its own file in `/assets/` with a hash in its name, loaded from an absolute path, so it loads the same from any URL. These files are cached for a year (the hash changes when they do) and `index.html` is always checked for a new version. If a tab that was open during a redeploy opens a page whose old file is gone, the app reloads once to pick up the new version (`src/lib/staleChunks.js`).
+
+**Where requests go:** `src/api/url.js` builds every request URL. With `VITE_API_URL` empty (development), requests go to `/api` and the Vite proxy sends them to `http://localhost:4000`. In a production build, a missing or invalid `VITE_API_URL` is reported in the browser console.
+
+### 3. Verify
+On the live site, in a private window:
+
+1. Register a new account, then log out and log in.
+2. Add an expense and an income, then search and filter for them.
+3. Open **Summary**, then **Budgets**, and set a limit.
+4. On `/budgets`, do a hard refresh (Ctrl+Shift+R). The page loads, not a 404.
+5. In DevTools, **Network**: API calls go to the Render URL. **Console**: no CORS errors and no `VITE_API_URL` message.
+
+If the app says it can't reach the server and the Console shows a CORS error, the API's `CLIENT_ORIGIN` doesn't exactly match this site's origin.
+
+### 4. Redeploy and roll back
+- **Redeploy:** merging into the production branch deploys automatically. `VITE_` values are read at build time, so after changing one, open **Deployments**, then the latest one's **⋯** menu, and choose **Redeploy**.
+- **Roll back:** **Deployments**, find the last good one, **⋯**, **Promote to Production** (Instant Rollback). It's live in seconds. Then revert the bad change in Git, or the next merge deploys it again.
+
+### 5. Known limits for demo day
+- The API is on Render's free tier and sleeps after 15 minutes without requests. The first request after that can take up to a minute; the app gives up after 20 seconds with "The server took too long to respond", and **Try again** works once it's awake. Open the API's `/health` 5 minutes before the demo.
+- Supabase free projects pause after a week without activity, and then sign-in and every page fail. The day before the demo, open the Supabase dashboard and restore the project if it's paused.
 
 ## Workflow
 - `develop` holds the current sprint's work. `main` is only updated at the end of each sprint, through one PR from `develop`.

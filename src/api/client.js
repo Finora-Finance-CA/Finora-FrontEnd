@@ -11,10 +11,11 @@
 //   'server'       anything else (500, unexpected responses, other 4xx)
 
 import { getAuthToken } from '../auth/token'
+import { apiBaseUrl, apiUrl } from './url'
 
 // Empty in development so requests go to /api on the Vite dev server, which
-// proxies them to the API (see vite.config.js).
-const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+// proxies them to the API. The API's address in production (see url.js).
+const BASE_URL = apiBaseUrl(import.meta.env.VITE_API_URL, { production: import.meta.env.PROD })
 
 const TIMEOUT_MS = 20_000
 
@@ -76,7 +77,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
   if (auth) {
-      const token = await getAuthToken()
+    const token = await getAuthToken()
     if (!token) {
       throw new ApiError('unauthorized', MESSAGES.unauthorized)
     }
@@ -85,7 +86,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
 
   let response
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await fetch(apiUrl(BASE_URL, path), {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
