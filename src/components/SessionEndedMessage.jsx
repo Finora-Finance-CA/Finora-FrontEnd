@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 /**
  * Shown when the API answers 401: the user's session is no longer accepted.

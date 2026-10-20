@@ -22,10 +22,8 @@ jobs:
       - run: npm ci
 
       # The tests mock Supabase and the API, so no secrets or environment variables are needed.
+      - run: npm run lint
+
       - run: npm test
 
       - run: npm run build
-
-      # Lint is left out until the existing react-refresh/only-export-components error in
-      # src/context/AuthContext.jsx is fixed. Then add:
-      # - run: npm run lint

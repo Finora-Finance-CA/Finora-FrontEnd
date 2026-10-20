@@ -19,6 +19,20 @@ export function makeTransaction(overrides = {}) {
   }
 }
 
+/**
+ * What listTransactions resolves to for one page: the transactions and the API's
+ * pagination object. `total_count` defaults to the number of transactions given.
+ */
+export function pageOf(transactions, { page = 1, page_size = 20, total_count = transactions.length } = {}) {
+  return {
+    transactions,
+    pagination: { page, page_size, total_count, total_pages: Math.ceil(total_count / page_size) },
+  }
+}
+
+/** The query listTransactions gets with no search or filters, on page 1. */
+export const NO_FILTERS = Object.freeze({ page: 1, q: '', categories: [], from: '', to: '' })
+
 /** What the API sends back for a POST or PUT with this body: the body plus the saved fields. */
 export function savedFrom(payload, overrides = {}) {
   return makeTransaction({ category: null, description: null, ...payload, ...overrides })
