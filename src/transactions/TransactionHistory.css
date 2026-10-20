@@ -1,0 +1,122 @@
+.transaction-history {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 48px;
+  text-align: left;
+
+  h2:focus {
+    outline: none;
+  }
+}
+
+.transaction-history__message:not(:empty) {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  font-weight: 500;
+  color: var(--success);
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+}
+
+.transaction-history__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.transaction-history__summary {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.transaction-history__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 16px;
+  border: 1px dashed var(--field-border);
+  border-radius: 10px;
+
+  p {
+    color: var(--text-h);
+    font-weight: 500;
+  }
+}
+
+.transaction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* The previous page stays readable while the next one loads. No animation, so
+   nothing moves for people who prefer reduced motion. */
+.transaction-list--refreshing {
+  opacity: 0.6;
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'details amount'
+    'actions actions';
+  gap: 8px 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+
+  @media (min-width: 640px) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'details amount actions';
+    align-items: center;
+  }
+}
+
+.transaction-row__details {
+  grid-area: details;
+  min-width: 0;
+}
+
+.transaction-row__description {
+  color: var(--text-h);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.transaction-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 15px;
+}
+
+.transaction-row__type {
+  font-weight: 600;
+}
+
+.transaction-row__amount {
+  grid-area: amount;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.transaction-row--income {
+  .transaction-row__amount,
+  .transaction-row__type {
+    color: var(--success);
+  }
+}
+
+.transaction-row__actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+}

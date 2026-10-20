@@ -1,0 +1,14 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination__status {
+  color: var(--text-h);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
