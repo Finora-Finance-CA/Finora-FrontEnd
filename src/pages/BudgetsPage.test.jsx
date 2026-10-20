@@ -133,7 +133,9 @@ describe('setting and editing a limit (US-32)', () => {
     expect(await within(rowFor('Other')).findByText('$75.00 a month')).toBeInTheDocument()
     expect(createBudget).toHaveBeenCalledWith({ category: 'Other', limit_cents: 7500 })
     expect(within(rowFor('Other')).getByRole('status')).toHaveTextContent('Other limit saved: $75.00 a month.')
-    expect(within(rowFor('Other')).getByRole('button', { name: 'Edit Other limit' })).toHaveFocus()
+    // Focus moves in an effect after the saved row is on screen, which on a slow machine
+    // runs in a later task than the text appearing.
+    await waitFor(() => expect(within(rowFor('Other')).getByRole('button', { name: 'Edit Other limit' })).toHaveFocus())
   })
 
   it('edits a limit, starting from the saved value', async () => {
@@ -379,13 +381,16 @@ describe('removing a limit (US-32)', () => {
     deleteBudget.mockRejectedValue(SERVER_ERROR)
     await showBudgets()
     const dialog = await openRemove('Food')
+    // A real click focuses the button; fireEvent.click doesn't.
+    const remove = within(dialog).getByRole('button', { name: 'Remove limit' })
+    remove.focus()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove limit' }))
+    fireEvent.click(remove)
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'The limit was not removed. Something went wrong on our end. Please try again in a moment.'
     )
-    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus())
     expect(rowFor('Food')).toHaveTextContent('$500.00 a month')
   })
 
