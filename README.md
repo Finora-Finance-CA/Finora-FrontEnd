@@ -8,7 +8,7 @@ Syed Kazmi, Usayd Jahangiri, Ayaan Sethi
 ## Tech Stack
 - React with Vite (JavaScript, ESLint)
 - React Router
-- Tailwind CSS
+- Plain CSS, one file per component, with shared colour tokens in `src/index.css` (light and dark mode)
 - Supabase Auth (`@supabase/supabase-js`) for sign-up, login and sessions
 - Vitest and Testing Library for tests
 
@@ -60,7 +60,11 @@ The app runs at http://localhost:5173.
 | `/login` | Signed-out users only | `AuthPage` in login mode |
 | `/register` | Signed-out users only | `AuthPage` in register mode |
 | `/transactions` | Signed-in users only | `TransactionsPage`. Takes `?q=`, `?category=` (repeatable), `?from=`, `?to=` and `?page=` for the list's search, filters and page. |
+| `/summary` | Signed-in users only | `SummaryPage`. Takes `?month=YYYY-MM`; without it (or with an invalid one) it shows the current month. |
+| `/budgets` | Signed-in users only | `BudgetsPage` |
 | `/` | Everyone | Redirects to `/transactions` (or `/login` if signed out) |
+
+Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only has the header, routing and sign-in check. "Loading page…" shows while a page's code arrives.
 
 ## How auth works
 - `src/lib/supabase.js` creates the one Supabase client for the app. Import it from here; never create another.
@@ -75,7 +79,7 @@ The app runs at http://localhost:5173.
 
 Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 
-A temporary status bar in `App.jsx` shows who is logged in and has a Log out button. Remove it once there's a real navigation bar.
+`src/components/AppHeader.jsx` is the bar at the top of every page: a **Skip to main content** link, the app name, the main navigation (Transactions, Summary, Budgets, with `aria-current="page"` on the current one) and, apart from the links, the logged-in email and **Log out**. Signed-out visitors only see the app name. On a narrow phone the links move to their own row. Every page's `<main>` has `id="main"` for the skip link.
 
 ## Transactions page
 `/transactions` has the Add expense / Add income form at the top and **Transaction history** below it.
@@ -111,6 +115,39 @@ A temporary status bar in `App.jsx` shows who is logged in and has a Log out but
 
 Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for light and dark mode. `constants.test.js` checks every text and background pair is at least 4.5:1.
 
+## Summary page
+`/summary` shows one month's **Total income**, **Total expenses** and **Net balance** from `GET /api/summary`, as three cards with amounts from `formatCents`.
+
+- **Month:** starts on the user's current month (in their own time zone). **Previous** and **Next** step a month at a time, across years too, and the month's name (e.g. "October 2026") is announced when it changes. **This month** jumps back. The month is in the URL (`/summary?month=2026-09`), so refresh and **Back** keep it; an invalid month in the URL shows the current month. January 1900 is the earliest.
+- **Net balance:** a surplus is green with the word **Surplus**; a deficit is red, with a minus sign and the word **Deficit**; equal income and expenses say **Even**. Colour is never the only signal.
+- **States:** "Loading summary…", an error with **Try again** (or **Sign in again** if the session has ended), "No transactions in August 2026." with a link to add one, and the cards. While another month loads, the last one stays on screen, dimmed.
+
+## Budgets page
+`/budgets` has a row for every category (`BUDGET_CATEGORIES`), each with its monthly limit or "No limit set".
+
+- **Set limit** or **Edit** opens a small form in the row. Typed dollars become cents with string parsing only (`readDollars` in `money.js`, shared with the transaction form), so "1,000.00", "$12" and " 40 " all work and nothing goes through floating point. **Save limit** sends `POST /api/budgets` (new) or `PUT /api/budgets/:id` (change). **Cancel** or **Escape** closes the form, and focus goes back to the row's button.
+- **Invalid limits** (US-33): empty, zero, negative and non-numeric limits are blocked with "Enter a limit greater than zero."; more than two decimals with "Use at most two decimal places, like 500.00." The error is under the field and linked to it. If the API still rejects a limit, its message shows on the field ("Limit must be greater than zero.").
+- **Duplicates:** if a limit for that category was added somewhere else meanwhile, the API's 409 message shows ("You already have a budget for Food. Change that one instead.") and the list loads again, so the next **Save limit** changes that one.
+- **Remove** asks first, in a dialog with **Cancel** focused. **Remove limit** sends `DELETE /api/budgets/:id`.
+- **Feedback:** each row says what happened ("Food limit saved: $500.00 a month.", "Food limit removed.") until the next change. Nothing disappears on a timer. A limit that was removed somewhere else is taken off the row with a message.
+- **States:** "Loading budgets…", an error with **Try again** (or **Sign in again**), and a note when no limits are set yet.
+
+| File | Job |
+| --- | --- |
+| `src/pages/SummaryPage.jsx` | The month in the URL, and the summary's states |
+| `src/summary/MonthSelector.jsx` | Previous, the month's name, Next and This month |
+| `src/summary/SummaryCards.jsx` | The three cards, and Surplus / Deficit / Even |
+| `src/summary/months.js` | Months as `YYYY-MM`: the current month, stepping, and "October 2026" labels, with no time zone maths |
+| `src/summary/useMonthlySummary.js` | Loads a month's summary |
+| `src/pages/BudgetsPage.jsx` | One row per category, and the page's states |
+| `src/budgets/BudgetRow.jsx` | One category's limit, its form, and its messages |
+| `src/budgets/RemoveBudgetDialog.jsx` | The remove confirmation |
+| `src/budgets/limits.js` | Dollars to cents for a limit, with the limit's messages |
+| `src/budgets/useBudgets.js` | Loads the budgets and keeps them current |
+| `src/api/summary.js`, `src/api/budgets.js` | The API calls |
+
+A 409 from the API becomes an `ApiError` with `kind: 'conflict'` and the API's own message (it's written for people), or "That already exists." if it has none.
+
 ## Tests
 
 ```bash
@@ -120,15 +157,15 @@ npm test
 Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. The tests never call the API or Supabase:
 
 - `src/test/setup.js` runs first in every file. It adds the jest-dom matchers (`toBeInTheDocument`, `toHaveFocus`, ...), replaces `src/lib/supabase.js` with `src/test/fakeSupabase.js` (signed in by default; `resetFakeSupabase({ session: null })` signs out), and cleans up after each test.
-- Tests that render pages mock the API module with `vi.mock('../api/transactions')` and set what each function returns. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
-- `renderApp(path)` from `src/test/renderApp.jsx` renders the whole app (routes and `AuthProvider`) at a path, so tests use the page the way a user does. `currentPath()` and `currentSearch()` say where the app is now.
+- Tests that render pages mock the API modules (`vi.mock('../api/transactions')`, `'../api/summary'`, `'../api/budgets'`) and set what each function returns. Reset the mocks in `beforeEach`: `restoreMocks` doesn't clear queued `mockResolvedValueOnce` values. Summary tests fix the clock with `vi.useFakeTimers({ toFake: ['Date'] })`, so only dates are faked. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
+- `renderApp(path)` from `src/test/renderApp.jsx` renders the whole app (routes and `AuthProvider`) at a path, so tests use the page the way a user does. `currentPath()` and `currentSearch()` say where the app is now. Pages are lazy-loaded, so use `findBy...` for the first thing on a page; `setup.js` gives those waits up to 5 seconds.
 
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
 
 ## Adding a protected page
-1. Create the page in `src/pages`.
-2. Add a route in `App.jsx`, wrapped in `<ProtectedRoute>`.
+1. Create the page in `src/pages`, with `<main id="main" className="page">` (the skip link's target and the shared layout in `index.css`).
+2. Add a lazy route in `App.jsx`, wrapped in `<ProtectedRoute>`, and a link in `AppHeader.jsx` if it belongs in the main navigation.
 3. Call the API with `apiRequest` from `src/api/client.js`.
 4. Get the current user with `useAuth()` if the page needs it.
 

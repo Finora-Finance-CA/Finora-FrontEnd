@@ -1,0 +1,68 @@
+/* One column on a phone, three side by side when there's room. */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin: 0;
+}
+
+/* The previous month stays readable while the next one loads. No animation. */
+.summary-cards--refreshing {
+  opacity: 0.6;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+
+  dd {
+    margin: 0;
+  }
+}
+
+.summary-card__label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summary-card__amount {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+
+  @media (max-width: 480px) {
+    font-size: 26px;
+  }
+}
+
+.summary-card__status {
+  font-size: 15px;
+  line-height: 135%;
+}
+
+.summary-card--income .summary-card__amount,
+.summary-card--surplus .summary-card__amount,
+.summary-card--surplus .summary-card__status strong {
+  color: var(--success);
+}
+
+/* A deficit is red, with a minus sign and the word Deficit as well. */
+.summary-card--deficit {
+  border-color: var(--error);
+
+  .summary-card__amount,
+  .summary-card__status strong {
+    color: var(--error);
+  }
+}

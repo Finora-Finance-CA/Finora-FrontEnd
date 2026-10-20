@@ -38,8 +38,13 @@ function deferred() {
   return { promise, resolve, reject }
 }
 
+// The header's navigation is a list too, so look inside the history section.
+function historySection() {
+  return screen.getByRole('region', { name: 'Transaction history' })
+}
+
 function transactionList() {
-  return screen.getByRole('list')
+  return within(historySection()).getByRole('list')
 }
 
 function rowFor(description) {
@@ -55,7 +60,7 @@ function descriptionsInList() {
 async function showList(transactions = [LUNCH, SALARY, RENT], path) {
   listTransactions.mockResolvedValue(pageOf(transactions))
   renderApp(path)
-  await screen.findByRole('list')
+  await within(await screen.findByRole('region', { name: 'Transaction history' })).findByRole('list')
 }
 
 function statusMessage() {

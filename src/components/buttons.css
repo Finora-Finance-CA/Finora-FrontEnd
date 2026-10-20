@@ -28,6 +28,17 @@
   }
 }
 
+/* The main action in a form, the same purple as the transaction form's Save button. */
+.button--primary {
+  color: var(--on-accent-solid);
+  background: var(--accent-solid);
+  border: 1px solid var(--accent-solid);
+
+  &:hover:not(:disabled) {
+    background: #6b21a8;
+  }
+}
+
 .button--danger {
   color: #fff;
   background: #b42318;

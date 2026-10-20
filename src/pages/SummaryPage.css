@@ -1,0 +1,46 @@
+.summary-page {
+  .summary-cards {
+    max-width: 960px;
+  }
+}
+
+.summary-page__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.summary-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--field-border);
+  border-radius: 10px;
+
+  p {
+    color: var(--text-h);
+    font-weight: 500;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-weight: 600;
+    color: var(--accent-solid);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .summary-page__empty a {
+    color: var(--accent);
+  }
+}

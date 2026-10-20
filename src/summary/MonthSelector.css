@@ -1,0 +1,68 @@
+.month-selector {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'previous label next'
+    'today today today';
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  > .button:first-of-type {
+    grid-area: previous;
+  }
+
+  > .button:nth-of-type(2) {
+    grid-area: next;
+  }
+}
+
+.month-selector__label {
+  grid-area: label;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-h);
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
+}
+
+.month-selector__arrow {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.month-selector__today {
+  grid-area: today;
+  justify-self: center;
+}
+
+/* On a narrow phone the arrows stand alone so the month's name has room. The buttons
+   keep their full names ("Previous month, September 2026") and their 44px size. */
+@media (max-width: 420px) {
+  .month-selector .button {
+    min-width: 44px;
+    justify-content: center;
+    padding: 8px 12px;
+  }
+
+  .month-selector__word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

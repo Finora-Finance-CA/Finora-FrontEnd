@@ -11,6 +11,13 @@
      modes. Matches the purple of the form's Save button and type switch. */
   --accent-solid: #7e22ce;
   --on-accent-solid: #fff;
+  /* Field borders, and error and success colours, used across pages (moved here from
+     FormField.css so pages without a form get them too). */
+  --field-border: #8d8794;
+  --error: #b42318;
+  --error-bg: #fef3f2;
+  --success: #067647;
+  --success-bg: #ecfdf3;
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
@@ -45,6 +52,11 @@
     --accent-bg: rgba(192, 132, 252, 0.15);
     --accent-border: rgba(192, 132, 252, 0.5);
     --social-bg: rgba(47, 48, 58, 0.5);
+    --field-border: #6b7280;
+    --error: #f97066;
+    --error-bg: rgba(249, 112, 102, 0.12);
+    --success: #47cd89;
+    --success-bg: rgba(71, 205, 137, 0.12);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -97,6 +109,34 @@ h2 {
 }
 p {
   margin: 0;
+}
+
+/* Layout for a page's <main>, the same as the Transactions page's. */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 32px;
+  text-align: left;
+
+  h1 {
+    margin: 0;
+  }
+
+  @media (max-width: 1024px) {
+    padding: 24px 16px;
+  }
+}
+
+.page__intro {
+  max-width: 60ch;
+}
+
+/* Shown while a page's code loads (see App.jsx). */
+.page-loading {
+  padding: 32px;
+  text-align: left;
 }
 
 /* Hidden on screen but still read by screen readers, e.g. which row a button acts on. */
