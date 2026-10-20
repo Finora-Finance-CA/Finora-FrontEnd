@@ -5,6 +5,8 @@
 //   'validation'   400 with { errors: { field: message } }, in `fieldErrors`
 //   'unauthorized' 401, or no token to send
 //   'not_found'    404: the item doesn't exist, or belongs to another user
+//   'conflict'     409: it clashes with something the user already has, e.g. a
+//                  second budget for one category. The API's message says what.
 //   'network'      the server couldn't be reached or took too long
 //   'server'       anything else (500, unexpected responses, other 4xx)
 
@@ -18,7 +20,7 @@ const TIMEOUT_MS = 20_000
 
 export class ApiError extends Error {
   /**
-   * @param {'validation'|'unauthorized'|'not_found'|'network'|'server'} kind
+   * @param {'validation'|'unauthorized'|'not_found'|'conflict'|'network'|'server'} kind
    * @param {string} message Plain-language message, safe to show to the user.
    * @param {{ status?: number, fieldErrors?: Record<string, string> }} [details]
    */
@@ -34,10 +36,22 @@ export class ApiError extends Error {
 const MESSAGES = {
   unauthorized: 'Your session has ended. Sign in again.',
   not_found: "We couldn't find that. It may have been deleted.",
+  conflict: 'That already exists.',
   network: "We couldn't reach the server. Check your connection and try again.",
   timeout: 'The server took too long to respond. Please try again.',
   server: 'Something went wrong on our end. Please try again in a moment.',
   validation: 'Some details need fixing. Check the highlighted fields.',
+}
+
+// The API writes its 409 messages for people ("You already have a budget for Food.
+// Change that one instead."), so show it. Fall back if it's missing or looks wrong.
+const MAX_CONFLICT_MESSAGE_LENGTH = 200
+
+function conflictMessage(data) {
+  const message = data?.error
+  return typeof message === 'string' && message.trim() && message.length <= MAX_CONFLICT_MESSAGE_LENGTH
+    ? message.trim()
+    : MESSAGES.conflict
 }
 
 async function readJson(response) {
@@ -92,6 +106,10 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
 
   if (response.status === 404) {
     throw new ApiError('not_found', MESSAGES.not_found, { status: 404 })
+  }
+
+  if (response.status === 409) {
+    throw new ApiError('conflict', conflictMessage(data), { status: 409 })
   }
 
   if (response.status === 400 && data?.errors && typeof data.errors === 'object') {

@@ -60,6 +60,28 @@ describe('apiRequest', () => {
     await expect(apiRequest('/api/transactions')).rejects.toMatchObject({ name: 'ApiError', ...expected })
   })
 
+  it('turns a 409 into a conflict error that keeps the API’s message', async () => {
+    respondWith(409, { error: 'You already have a budget for Food. Change that one instead.' })
+
+    await expect(apiRequest('/api/budgets', { method: 'POST', body: {} })).rejects.toMatchObject({
+      name: 'ApiError',
+      kind: 'conflict',
+      status: 409,
+      message: 'You already have a budget for Food. Change that one instead.',
+    })
+  })
+
+  it.each([
+    ['no body', undefined],
+    ['no message', {}],
+    ['a message that is not text', { error: { detail: 'x' } }],
+    ['a very long message', { error: 'x'.repeat(500) }],
+  ])('uses a plain message for a 409 with %s', async (_, body) => {
+    respondWith(409, body)
+
+    await expect(apiRequest('/api/budgets')).rejects.toMatchObject({ kind: 'conflict', message: 'That already exists.' })
+  })
+
   it('reports a network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
 

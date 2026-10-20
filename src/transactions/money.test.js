@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_AMOUNT_CENTS } from './constants'
-import { centsToDollarString, formatCents, parseDollarsToCents } from './money'
+import { centsToDollarString, formatCents, parseDollarsToCents, readDollars } from './money'
 
 describe('parseDollarsToCents', () => {
   it.each([
@@ -30,6 +30,20 @@ describe('parseDollarsToCents', () => {
     ['21474836.48', 'Enter an amount no more than $21,474,836.47.'],
   ])('rejects %j', (input, error) => {
     expect(parseDollarsToCents(input)).toEqual({ cents: null, error })
+  })
+})
+
+describe('readDollars', () => {
+  it.each([
+    ['12.50', { cents: 1250, reason: null }],
+    ['', { cents: null, reason: 'empty' }],
+    ['-1', { cents: null, reason: 'format' }],
+    ['abc', { cents: null, reason: 'format' }],
+    ['1.005', { cents: null, reason: 'decimals' }],
+    ['0', { cents: null, reason: 'zero' }],
+    ['21474836.48', { cents: null, reason: 'too_large' }],
+  ])('reads %j', (input, expected) => {
+    expect(readDollars(input)).toEqual(expected)
   })
 })
 

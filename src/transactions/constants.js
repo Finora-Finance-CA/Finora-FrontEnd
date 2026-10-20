@@ -3,6 +3,10 @@
 
 export const CATEGORIES = Object.freeze(['Food', 'Transportation', 'Housing', 'Entertainment', 'Other'])
 
+// The categories a monthly budget can be set for (the API's BUDGET_CATEGORIES).
+// Budgets limit spending, and every category can be used on an expense.
+export const BUDGET_CATEGORIES = CATEGORIES
+
 // The colour of each category's label, for light and dark mode. The label always shows
 // the category's name too, so colour is never the only signal. Every text/background
 // pair is at least 4.5:1 (WCAG AA); constants.test.js checks this. Purple and green are

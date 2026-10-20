@@ -41,7 +41,7 @@ export default function TransactionsPage() {
   }, [pageIsPastEnd, pagination.total_pages, updateQuery])
 
   return (
-    <main className="transactions-page">
+    <main id="main" className="transactions-page">
       <h1>Transactions</h1>
       <TransactionForm
         type={transactionType}

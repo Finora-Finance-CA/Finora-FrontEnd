@@ -9,41 +9,56 @@ import { MAX_AMOUNT_CENTS } from './constants'
 const AMOUNT_PATTERN = /^(\d{1,3}(?:,\d{3})+|\d*)(?:\.(\d*))?$/
 
 /**
- * Parses a dollar amount typed by the user.
+ * Reads a dollar amount typed by the user, without deciding how to word a problem.
+ * Both the transaction form and the budget form use it, each with its own messages.
  *
  * Accepts an optional leading "$" and surrounding spaces, e.g. "19.99", "$5",
- * "1,250.5" or ".75".
+ * "1,250.5" or ".75". A minus sign isn't accepted, so "-1" is a 'format' problem.
  *
  * @param {string} input
- * @returns {{ cents: number, error: null } | { cents: null, error: string }}
+ * @returns {{ cents: number, reason: null }
+ *   | { cents: null, reason: 'empty'|'format'|'decimals'|'zero'|'too_large' }}
  */
-export function parseDollarsToCents(input) {
+export function readDollars(input) {
   const text = String(input ?? '').trim().replace(/^\$\s*/, '')
-  if (text === '') return { cents: null, error: 'Enter an amount.' }
+  if (text === '') return { cents: null, reason: 'empty' }
 
   const match = AMOUNT_PATTERN.exec(text)
-  if (!match) {
-    return { cents: null, error: 'Enter the amount as a number, like 12.50.' }
-  }
+  if (!match) return { cents: null, reason: 'format' }
 
   const dollars = match[1].replace(/,/g, '')
   const fraction = match[2] ?? ''
-  if (dollars === '' && fraction === '') {
-    return { cents: null, error: 'Enter the amount as a number, like 12.50.' }
-  }
-  if (fraction.length > 2) {
-    return { cents: null, error: 'Use at most two decimal places, like 12.50.' }
-  }
+  if (dollars === '' && fraction === '') return { cents: null, reason: 'format' }
+  if (fraction.length > 2) return { cents: null, reason: 'decimals' }
 
   // Strings of more than 15 digits lose precision as Numbers, but anything that
   // long is far above the maximum and is rejected below either way.
   const cents = Number(dollars || '0') * 100 + Number(fraction.padEnd(2, '0'))
 
-  if (cents <= 0) return { cents: null, error: 'Enter an amount greater than zero.' }
-  if (cents > MAX_AMOUNT_CENTS) {
-    return { cents: null, error: `Enter an amount no more than ${formatCents(MAX_AMOUNT_CENTS)}.` }
-  }
-  return { cents, error: null }
+  if (cents <= 0) return { cents: null, reason: 'zero' }
+  if (cents > MAX_AMOUNT_CENTS) return { cents: null, reason: 'too_large' }
+  return { cents, reason: null }
+}
+
+const AMOUNT_MESSAGES = {
+  empty: 'Enter an amount.',
+  format: 'Enter the amount as a number, like 12.50.',
+  decimals: 'Use at most two decimal places, like 12.50.',
+  zero: 'Enter an amount greater than zero.',
+}
+
+/**
+ * Parses a transaction amount typed by the user. See readDollars for what's accepted.
+ *
+ * @param {string} input
+ * @returns {{ cents: number, error: null } | { cents: null, error: string }}
+ */
+export function parseDollarsToCents(input) {
+  const { cents, reason } = readDollars(input)
+  if (!reason) return { cents, error: null }
+  const error =
+    reason === 'too_large' ? `Enter an amount no more than ${formatCents(MAX_AMOUNT_CENTS)}.` : AMOUNT_MESSAGES[reason]
+  return { cents: null, error }
 }
 
 /**
