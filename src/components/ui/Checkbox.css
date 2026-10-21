@@ -1,0 +1,75 @@
+.checkbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-h);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* Covers the whole row, so the label and box are one big target. */
+.checkbox__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.checkbox__check {
+  width: var(--check-size);
+  height: var(--check-size);
+  color: var(--on-accent);
+  opacity: 0;
+}
+
+/* Checked: filled and ticked, so the state never relies on colour alone. */
+.checkbox__input:checked + .checkbox__box {
+  background: var(--accent);
+  border-color: var(--accent);
+
+  .checkbox__check {
+    opacity: 1;
+  }
+}
+
+.checkbox__input:focus-visible + .checkbox__box {
+  outline: var(--focus-width) solid var(--ring);
+  outline-offset: 2px;
+}
+
+.checkbox__swatch {
+  flex: none;
+  width: var(--swatch-size);
+  height: var(--swatch-size);
+  border-radius: var(--radius-pill);
+  background: var(--swatch);
+}
+
+@media (prefers-color-scheme: dark) {
+  .checkbox__swatch {
+    background: var(--swatch-dark);
+  }
+}

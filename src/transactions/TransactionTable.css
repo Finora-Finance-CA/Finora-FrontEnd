@@ -1,0 +1,150 @@
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+
+  th {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+    font-weight: var(--weight-medium);
+    text-align: left;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: var(--space-3) var(--space-4);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.transaction-table th.transaction-table__amount-heading {
+  text-align: right;
+}
+
+/* The previous page stays readable while the next one loads. */
+.transaction-table--refreshing tbody {
+  opacity: 0.55;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.transaction-row__date {
+  width: 9rem;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.transaction-row__details {
+  min-width: 0;
+}
+
+.transaction-row__description {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.transaction-row__category {
+  width: 10rem;
+}
+
+.transaction-row__amount {
+  width: 9rem;
+  text-align: right;
+}
+
+.transaction-row__figure {
+  display: block;
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.transaction-row__type {
+  display: block;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--text-muted);
+}
+
+/* Income: green, with a + and the word Income, so colour is never the only signal. */
+.transaction-row--income .transaction-row__figure {
+  color: var(--positive);
+}
+
+.transaction-table .transaction-row__actions {
+  width: 1px;
+  padding-right: var(--space-2);
+  padding-left: 0;
+}
+
+/* Phones: each row is two lines, description and amount over date and category, with
+   the ⋯ menu on the right. The header stays for screen readers only. */
+@media (max-width: 767px) {
+  .transaction-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .transaction-table,
+  .transaction-table tbody {
+    display: block;
+  }
+
+  .transaction-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'details details amount actions'
+      'date category amount actions';
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .transaction-table td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: none;
+  }
+
+  .transaction-row__details {
+    grid-area: details;
+  }
+
+  .transaction-row__date {
+    grid-area: date;
+    font-size: var(--text-xs);
+    line-height: var(--leading-xs);
+  }
+
+  .transaction-row__category {
+    grid-area: category;
+  }
+
+  .transaction-row__amount {
+    grid-area: amount;
+  }
+
+  .transaction-table .transaction-row__actions {
+    grid-area: actions;
+    width: auto;
+    padding: 0;
+  }
+}

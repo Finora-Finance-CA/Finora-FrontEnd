@@ -62,6 +62,9 @@ describe('budget list (US-32)', () => {
     renderApp('/budgets')
 
     expect(await screen.findByText('Loading budgets…')).toBeInTheDocument()
+    // A placeholder row per category holds the layout; screen readers skip it.
+    const placeholders = screen.getByRole('main').querySelector('[aria-hidden="true"] .budget-list')
+    expect(placeholders.querySelectorAll('.budget-row')).toHaveLength(5)
   })
 
   it('has a row for every category, in order, with its limit or "No limit set"', async () => {

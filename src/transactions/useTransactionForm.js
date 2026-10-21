@@ -29,7 +29,8 @@ function valuesFrom(transaction) {
  *   fields, labels and rules come from TRANSACTION_TYPES[type].
  * @param {object} [options.transaction] The saved transaction to edit. The form starts
  *   with its values and saving replaces it (PUT). Without it, saving adds a new one.
- * @param {(transaction: object) => void} [options.onSaved] Called after a successful save.
+ * @param {(transaction: object, message?: string) => void} [options.onSaved] Called after a
+ *   successful save. After adding, it also gets a message to show, e.g. "Expense of $12.50 saved.".
  * @param {() => void} [options.onNotFound] Called, instead of showing an error, when
  *   the transaction being edited no longer exists.
  * @param {(isSubmitting: boolean) => void} [options.onSubmittingChange] Called when a
@@ -43,19 +44,17 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
   const [errors, setErrors] = useState({})
   // A problem that isn't about one field: { kind, message }.
   const [formError, setFormError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   // Switching between expense and income keeps the typed values but drops every
-  // error and confirmation, which belonged to the other type. Done during render
-  // (not in an effect) so the old messages are never shown under the new heading.
+  // error, which belonged to the other type. Done during render (not in an effect) so
+  // the old messages are never shown under the new heading.
   const [shownType, setShownType] = useState(type)
   if (type !== shownType) {
     setShownType(type)
     setErrors({})
     setFormError(null)
-    setSuccessMessage('')
     setHasAttemptedSubmit(false)
   }
 
@@ -93,7 +92,6 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
     event.preventDefault()
     if (submittingRef.current) return
 
-    setSuccessMessage('')
     setFormError(null)
     setHasAttemptedSubmit(true)
 
@@ -125,16 +123,7 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
 
     if (failure) handleApiError(failure)
     else if (transaction) onSaved?.(saved)
-    else handleCreated(saved, payload)
-  }
-
-  function handleCreated(created, payload) {
-    setValues(emptyValues())
-    setErrors({})
-    setHasAttemptedSubmit(false)
-    setSuccessMessage(`${label} of ${formatCents(payload.amount_cents)} saved.`)
-    focusField('amount')
-    onSaved?.(created)
+    else onSaved?.(saved, `${label} of ${formatCents(payload.amount_cents)} saved.`)
   }
 
   function handleApiError(err) {
@@ -172,5 +161,5 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
     }
   }
 
-  return { values, errors, formError, successMessage, isSubmitting, fieldProps, handleSubmit }
+  return { values, errors, formError, isSubmitting, fieldProps, handleSubmit }
 }

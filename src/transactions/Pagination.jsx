@@ -1,4 +1,5 @@
-import '../components/buttons.css'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Button from '../components/ui/Button'
 import './Pagination.css'
 
 /**
@@ -16,27 +17,28 @@ export default function Pagination({ page, totalPages, onPageChange, disabled = 
 
   return (
     <nav className="pagination" aria-label="Transaction pages">
-      <button
-        type="button"
-        className="button button--secondary"
+      <Button
+        size="sm"
+        icon={ChevronLeft}
         onClick={() => onPageChange(page - 1)}
         disabled={disabled || page <= 1}
         aria-label="Previous page"
       >
-        Previous
-      </button>
-      <p className="pagination__status">
+        <span className="pagination__word">Previous</span>
+      </Button>
+      <p className="pagination__status tabular">
         Page {page} of {totalPages}
       </p>
-      <button
-        type="button"
-        className="button button--secondary"
+      <Button
+        size="sm"
+        className="pagination__next"
+        icon={ChevronRight}
         onClick={() => onPageChange(page + 1)}
         disabled={disabled || page >= totalPages}
         aria-label="Next page"
       >
-        Next
-      </button>
+        <span className="pagination__word">Next</span>
+      </Button>
     </nav>
   )
 }

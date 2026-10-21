@@ -1,21 +1,32 @@
+/* What's about to be deleted, as label and value pairs. */
 .delete-summary {
   display: grid;
-  gap: 8px;
-  margin: 0 0 16px;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  background: var(--surface-2);
 
   div {
     display: grid;
-    grid-template-columns: 7rem minmax(0, 1fr);
-    gap: 8px;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: var(--space-2);
   }
 
   dt {
-    font-weight: 600;
-    color: var(--text-h);
+    color: var(--text-muted);
   }
 
   dd {
     margin: 0;
+    font-weight: var(--weight-medium);
     overflow-wrap: anywhere;
   }
+}
+
+.delete-summary__note {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }

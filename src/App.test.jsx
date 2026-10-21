@@ -17,8 +17,13 @@ beforeEach(() => {
   listTransactions.mockResolvedValue(pageOf([]))
 })
 
+async function openAdd() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Add transaction' }))
+  return screen.getByRole('dialog', { name: 'Add expense' })
+}
+
 async function fillExpense({ amount = '12.50', category = 'Food' } = {}) {
-  await screen.findByRole('heading', { name: 'Add expense' })
+  await openAdd()
   fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: amount } })
   fireEvent.change(screen.getByLabelText('Category'), { target: { value: category } })
 }
@@ -28,7 +33,7 @@ describe('routes', () => {
     resetFakeSupabase({ session: null })
     renderApp('/transactions')
 
-    expect(await screen.findByRole('heading', { name: 'Login' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     expect(currentPath()).toBe('/login')
   })
 
@@ -36,7 +41,7 @@ describe('routes', () => {
     resetFakeSupabase({ session: null })
     renderApp('/register')
 
-    expect(await screen.findByRole('heading', { name: 'Register' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Create your account' })).toBeInTheDocument()
   })
 
   it('sends / to the transactions page when signed in', async () => {
@@ -51,7 +56,7 @@ describe('routes', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Log out' }))
 
-    expect(await screen.findByRole('heading', { name: 'Login' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     expect(currentPath()).toBe('/login')
   })
 })
@@ -74,7 +79,8 @@ describe('add forms', () => {
     createTransaction.mockImplementation(async (payload) => savedFrom(payload))
     renderApp()
 
-    fireEvent.click(await screen.findByRole('radio', { name: 'Income' }))
+    await openAdd()
+    fireEvent.click(screen.getByRole('radio', { name: 'Income' }))
     expect(screen.queryByLabelText('Category')).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '2,000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save income' }))
@@ -87,7 +93,7 @@ describe('add forms', () => {
 
   it('blocks invalid input without calling the API', async () => {
     renderApp()
-    await screen.findByRole('heading', { name: 'Add expense' })
+    await openAdd()
 
     fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '1.999' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
@@ -125,14 +131,14 @@ describe('when the session has ended', () => {
     expect(link).toHaveAttribute('href', '/login')
 
     fireEvent.click(link)
-    await screen.findByRole('heading', { name: 'Login' })
+    await screen.findByRole('heading', { name: 'Log in' })
     expect(fakeAuth.signOut).toHaveBeenCalledTimes(1)
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'me@example.com' } })
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Login' }))
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'me@example.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
 
-    expect(await screen.findByRole('heading', { name: 'Add expense' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Transactions', level: 1 })).toBeInTheDocument()
     expect(currentPath()).toBe('/transactions')
   })
 
@@ -147,7 +153,7 @@ describe('when the session has ended', () => {
 
     fireEvent.click(link)
 
-    expect(await screen.findByRole('heading', { name: 'Login' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     expect(logged).toHaveBeenCalledWith('Sign out failed:', expect.any(Error))
   })
 
@@ -157,7 +163,7 @@ describe('when the session has ended', () => {
     fireEvent.click(link)
     fireEvent.click(link)
 
-    await screen.findByRole('heading', { name: 'Login' })
+    await screen.findByRole('heading', { name: 'Log in' })
     expect(fakeAuth.signOut).toHaveBeenCalledTimes(1)
   })
 })

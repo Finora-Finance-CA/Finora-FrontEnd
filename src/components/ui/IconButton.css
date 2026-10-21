@@ -1,0 +1,48 @@
+/* 36px to look at, 44px to tap: the ::before widens the hit area. */
+.icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--hit-extend) * -1);
+  }
+
+  &:hover:not(:disabled),
+  &[aria-expanded='true'] {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.icon-button--secondary {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border-field);
+}
+
+.icon-button__icon {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}

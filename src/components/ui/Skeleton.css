@@ -1,0 +1,45 @@
+.skeleton {
+  display: block;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton--text {
+  width: 100%;
+  max-width: 220px;
+}
+
+.skeleton--short {
+  width: 64px;
+}
+
+.skeleton--amount {
+  width: 72px;
+  margin-left: auto;
+}
+
+.skeleton--pill {
+  width: 72px;
+  height: var(--pill-h);
+  border-radius: var(--radius-pill);
+}
+
+.skeleton--figure {
+  width: 140px;
+  height: 32px;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* A still tint for people who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
