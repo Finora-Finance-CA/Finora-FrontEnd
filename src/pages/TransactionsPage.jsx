@@ -1,15 +1,19 @@
+import { Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import Button from '../components/ui/Button'
+import PageHeader from '../components/ui/PageHeader'
+import AddTransactionDrawer from '../transactions/AddTransactionDrawer'
 import { hasActiveFilters, isRangeReversed, readListQuery, writeListQuery } from '../transactions/listQuery'
-import TransactionForm from '../transactions/TransactionForm'
 import TransactionHistory from '../transactions/TransactionHistory'
 import { useTransactions } from '../transactions/useTransactions'
 import './TransactionsPage.css'
 
 export default function TransactionsPage() {
-  // Expense or income. Expense comes first because it's the more common entry.
-  const [transactionType, setTransactionType] = useState('expense')
-  const amountRef = useRef(null)
+  const [adding, setAdding] = useState(false)
+  // What just happened ("Expense of $12.50 saved."), shown above the table.
+  const [message, setMessage] = useState('')
+  const addButtonRef = useRef(null)
 
   // The list's page, search and filters live in the URL, so refresh and Back keep them.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -40,14 +44,31 @@ export default function TransactionsPage() {
     if (pageIsPastEnd) updateQuery({ page: Math.max(pagination.total_pages, 1) }, { replace: true })
   }, [pageIsPastEnd, pagination.total_pages, updateQuery])
 
+  function openAdd() {
+    setMessage('')
+    setAdding(true)
+  }
+
+  // The drawer closes and focus goes back to Add transaction; the list loads again so
+  // the new transaction shows where the API puts it.
+  function handleAdded(_transaction, text) {
+    setAdding(false)
+    setMessage(text)
+    list.reload()
+  }
+
   return (
-    <main id="main" className="transactions-page">
-      <h1>Transactions</h1>
-      <TransactionForm
-        type={transactionType}
-        onTypeChange={setTransactionType}
-        onSaved={list.reload}
-        firstFieldRef={amountRef}
+    <div className="page">
+      <PageHeader
+        title="Transactions"
+        subtitle="Every income and expense, newest first."
+        actions={
+          <Button ref={addButtonRef} variant="primary" icon={Plus} aria-haspopup="dialog" onClick={openAdd}>
+            <span>
+              Add <span className="transactions-page__add-noun">transaction</span>
+            </span>
+          </Button>
+        }
       />
       <TransactionHistory
         list={list}
@@ -55,8 +76,11 @@ export default function TransactionsPage() {
         filtersActive={hasActiveFilters(query)}
         rangeReversed={rangeReversed}
         onQueryChange={updateQuery}
-        onAddFirst={() => amountRef.current?.focus()}
+        onAddFirst={openAdd}
+        message={message}
+        onMessage={setMessage}
       />
-    </main>
+      {adding && <AddTransactionDrawer onSaved={handleAdded} onClose={() => setAdding(false)} returnFocusRef={addButtonRef} />}
+    </div>
   )
 }

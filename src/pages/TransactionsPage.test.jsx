@@ -38,29 +38,43 @@ function deferred() {
   return { promise, resolve, reject }
 }
 
-// The header's navigation is a list too, so look inside the history section.
 function historySection() {
   return screen.getByRole('region', { name: 'Transaction history' })
 }
 
-function transactionList() {
-  return within(historySection()).getByRole('list')
+function transactionTable() {
+  return within(historySection()).getByRole('table', { name: 'Transaction history' })
+}
+
+/** The table's rows, without the header row. */
+function bodyRows() {
+  return within(transactionTable()).getAllByRole('row').slice(1)
 }
 
 function rowFor(description) {
-  return within(transactionList()).getByText(description).closest('li')
+  return within(transactionTable()).getByText(description).closest('tr')
 }
 
 function descriptionsInList() {
-  return within(transactionList())
-    .getAllByRole('listitem')
-    .map((row) => row.querySelector('.transaction-row__description').textContent)
+  return bodyRows().map((row) => row.querySelector('.transaction-row__description').textContent)
+}
+
+function actionsButton(description) {
+  return within(rowFor(description)).getByRole('button', { name: /^Actions for/ })
+}
+
+/** Opens a row's ⋯ menu and chooses Edit or Delete. */
+function chooseAction(description, action) {
+  fireEvent.click(actionsButton(description))
+  fireEvent.click(screen.getByRole('menuitem', { name: action }))
 }
 
 async function showList(transactions = [LUNCH, SALARY, RENT], path) {
   listTransactions.mockResolvedValue(pageOf(transactions))
   renderApp(path)
-  await within(await screen.findByRole('region', { name: 'Transaction history' })).findByRole('list')
+  // The table shows placeholder rows while loading (hidden from screen readers), so wait
+  // for real ones.
+  await waitFor(() => expect(bodyRows().length).toBeGreaterThan(0))
 }
 
 function statusMessage() {
@@ -73,6 +87,23 @@ function lastQuery() {
 
 function searchBox() {
   return screen.getByRole('searchbox', { name: 'Search descriptions' })
+}
+
+/** Opens the add drawer from the page header and returns it. */
+async function openAdd() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Add transaction' }))
+  return screen.getByRole('dialog', { name: 'Add expense' })
+}
+
+/** Fills in an expense in the add drawer and saves it. */
+async function addExpense({ amount = '4.75', category = 'Food', description } = {}) {
+  const drawer = await openAdd()
+  fireEvent.change(within(drawer).getByLabelText('Amount ($)'), { target: { value: amount } })
+  fireEvent.change(within(drawer).getByLabelText('Category'), { target: { value: category } })
+  if (description) {
+    fireEvent.change(within(drawer).getByLabelText('Description (optional)'), { target: { value: description } })
+  }
+  fireEvent.click(within(drawer).getByRole('button', { name: 'Save expense' }))
 }
 
 function historyHeading() {
@@ -101,6 +132,24 @@ describe('transaction list states', () => {
     renderApp()
 
     expect(await screen.findByText('Loading transactions…')).toBeInTheDocument()
+    // Placeholder rows keep the table's shape; screen readers skip them.
+    const placeholders = transactionTable().querySelectorAll('.transaction-row--placeholder')
+    expect(placeholders).toHaveLength(5)
+    expect(placeholders[0]).toHaveAttribute('aria-hidden', 'true')
+    expect(transactionTable()).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('shows the transactions in a table with column headers', async () => {
+    await showList()
+
+    expect(within(transactionTable()).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+      'Date',
+      'Description',
+      'Category',
+      'Amount',
+      'Actions',
+    ])
+    expect(bodyRows()).toHaveLength(3)
   })
 
   it('asks for the first page with no filters', async () => {
@@ -109,13 +158,14 @@ describe('transaction list states', () => {
     expect(listTransactions).toHaveBeenCalledWith(NO_FILTERS)
   })
 
-  it('offers to add a first transaction when there are none, and the button goes to the form', async () => {
+  it('offers to add a first transaction when there are none, and the button opens the add drawer', async () => {
     renderApp()
 
     expect(await screen.findByText("You haven't added any transactions yet.")).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add your first transaction' }))
 
-    expect(screen.getByLabelText('Amount ($)')).toHaveFocus()
+    const drawer = screen.getByRole('dialog', { name: 'Add expense' })
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveFocus()
   })
 
   it('shows each transaction in the API’s order, with date, type, category, description and amount', async () => {
@@ -156,11 +206,21 @@ describe('transaction list states', () => {
     expect(statusMessage()).toContain('Showing 3 transactions.')
   })
 
-  it('names the transaction on every Edit and Delete button for screen readers', async () => {
+  it('names the transaction on every row’s actions menu for screen readers, with Edit and Delete in it', async () => {
     await showList()
 
-    expect(within(rowFor('Lunch')).getByRole('button', { name: 'Edit: Lunch, $12.50, Oct 5, 2026' })).toBeInTheDocument()
-    expect(within(rowFor('Rent')).getByRole('button', { name: 'Delete: Rent, $950.00, Sep 28, 2026' })).toBeInTheDocument()
+    expect(within(rowFor('Lunch')).getByRole('button', { name: 'Actions for Lunch, $12.50, Oct 5, 2026' })).toBeInTheDocument()
+    const rent = within(rowFor('Rent')).getByRole('button', { name: 'Actions for Rent, $950.00, Sep 28, 2026' })
+    expect(rent).toHaveAttribute('aria-haspopup', 'menu')
+
+    fireEvent.click(rent)
+    expect(within(screen.getByRole('menu')).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Edit', 'Delete'])
+  })
+
+  it('names the actions of a transaction without a description by its type', async () => {
+    await showList([makeTransaction({ type: 'income', category: null, description: null, amount_cents: 500 })])
+
+    expect(screen.getByRole('button', { name: 'Actions for Income, $5.00, Oct 5, 2026' })).toBeInTheDocument()
   })
 
   it('labels a transaction without a description', async () => {
@@ -265,7 +325,7 @@ describe('paging (US-22)', () => {
     renderApp('/transactions?page=3')
     await screen.findByText('Last one')
 
-    fireEvent.click(within(rowFor('Last one')).getByRole('button', { name: /^Delete/ }))
+    chooseAction('Last one', 'Delete')
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText('t21')).toBeInTheDocument()
@@ -322,19 +382,43 @@ describe('search (US-23)', () => {
   })
 })
 
+function categoryButton() {
+  return screen.getByRole('button', { name: /^Category:/ })
+}
+
+function dateButton() {
+  return screen.getByRole('button', { name: /^Date:/ })
+}
+
+/** Opens the Category popover and returns it. */
+function openCategories() {
+  fireEvent.click(categoryButton())
+  return screen.getByRole('dialog', { name: 'Categories' })
+}
+
+/** Opens the Date popover and returns it. */
+function openDates() {
+  fireEvent.click(dateButton())
+  return screen.getByRole('dialog', { name: 'Date range' })
+}
+
 describe('category filter (US-24)', () => {
   it('shows only the chosen categories, and adding one keeps the first', async () => {
     await showList()
+    expect(categoryButton()).toHaveAccessibleName('Category: All categories')
+    const popover = openCategories()
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Housing' }))
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Housing' }))
     await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Housing'] }))
+    expect(categoryButton()).toHaveAccessibleName('Category: Housing')
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Food' }))
     await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food', 'Housing'] }))
-    expect(screen.getByRole('checkbox', { name: 'Food' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Housing' })).toBeChecked()
+    expect(within(popover).getByRole('checkbox', { name: 'Food' })).toBeChecked()
+    expect(within(popover).getByRole('checkbox', { name: 'Housing' })).toBeChecked()
+    expect(categoryButton()).toHaveAccessibleName('Category: 2 categories')
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Housing' }))
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Housing' }))
     await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food'] }))
   })
 
@@ -342,45 +426,106 @@ describe('category filter (US-24)', () => {
     await showList([RENT], '/transactions?category=Housing&category=Bogus')
 
     expect(listTransactions).toHaveBeenCalledWith({ ...NO_FILTERS, categories: ['Housing'] })
-    expect(screen.getByRole('checkbox', { name: 'Housing' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Food' })).not.toBeChecked()
+    expect(categoryButton()).toHaveAccessibleName('Category: Housing')
+    const popover = openCategories()
+    expect(within(popover).getByRole('checkbox', { name: 'Housing' })).toBeChecked()
+    expect(within(popover).getByRole('checkbox', { name: 'Food' })).not.toBeChecked()
   })
 
-  it('groups the category checkboxes under one label', async () => {
+  it('groups the category checkboxes under one label, focuses the first and closes on Escape', async () => {
     await showList()
+    const popover = openCategories()
 
-    expect(screen.getByRole('group', { name: 'Categories (choose any)' })).toBeInTheDocument()
+    expect(within(popover).getByRole('group', { name: 'Categories (choose any)' })).toBeInTheDocument()
+    expect(within(popover).getByRole('checkbox', { name: 'Food' })).toHaveFocus()
+    expect(categoryButton()).toHaveAttribute('aria-expanded', 'true')
+
+    fireEvent.keyDown(popover, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Categories' })).not.toBeInTheDocument()
+    expect(categoryButton()).toHaveFocus()
   })
 
   it('goes back to page 1 when a category is chosen', async () => {
     await showList([LUNCH], '/transactions?page=2')
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+    fireEvent.click(within(openCategories()).getByRole('checkbox', { name: 'Food' }))
 
     await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food'] }))
   })
 })
 
 describe('date range filter (US-25)', () => {
-  it('sends the From and To dates', async () => {
+  beforeEach(() => {
+    // Only Date is faked, so Testing Library's waits still run on real timers.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 20, 12, 0))
+  })
+
+  it('starts on All time, with that option checked and focused', async () => {
     await showList()
 
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-01' } })
-    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-01' }))
+    expect(dateButton()).toHaveAccessibleName('Date: All time')
+    const popover = openDates()
+    expect(within(popover).getByRole('group', { name: 'Date range' })).toBeInTheDocument()
+    expect(within(popover).getByRole('radio', { name: 'All time' })).toBeChecked()
+    expect(within(popover).getByRole('radio', { name: 'All time' })).toHaveFocus()
+    expect(within(popover).queryByLabelText('From')).not.toBeInTheDocument()
+  })
 
-    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-30' } })
-    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-01', to: '2026-09-30' }))
+  it.each([
+    ['This month', { from: '2026-10-01', to: '2026-10-31' }],
+    ['Last month', { from: '2026-09-01', to: '2026-09-30' }],
+    ['Last 90 days', { from: '2026-07-23', to: '2026-10-20' }],
+  ])('%s sets the From and To dates at once, from page 1', async (preset, range) => {
+    await showList([LUNCH], '/transactions?page=2')
+
+    fireEvent.click(within(openDates()).getByRole('radio', { name: preset }))
+
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, ...range }))
+    expect(currentSearch()).toBe(`?from=${range.from}&to=${range.to}`)
+    expect(dateButton()).toHaveAccessibleName(`Date: ${preset}`)
+  })
+
+  it('recognises a preset in the URL', async () => {
+    await showList([LUNCH], '/transactions?from=2026-09-01&to=2026-09-30')
+
+    expect(dateButton()).toHaveAccessibleName('Date: Last month')
+    expect(within(openDates()).getByRole('radio', { name: 'Last month' })).toBeChecked()
+  })
+
+  it('All time clears the dates', async () => {
+    await showList([LUNCH], '/transactions?from=2026-09-01&to=2026-09-30')
+
+    fireEvent.click(within(openDates()).getByRole('radio', { name: 'All time' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual(NO_FILTERS))
+  })
+
+  it('sends the From and To dates chosen under Custom', async () => {
+    await showList()
+    const popover = openDates()
+    fireEvent.click(within(popover).getByRole('radio', { name: 'Custom' }))
+
+    fireEvent.change(within(popover).getByLabelText('From'), { target: { value: '2026-09-05' } })
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-05' }))
+
+    fireEvent.change(within(popover).getByLabelText('To'), { target: { value: '2026-09-12' } })
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, from: '2026-09-05', to: '2026-09-12' }))
+    expect(dateButton()).toHaveAccessibleName('Date: Sep 5, 2026 to Sep 12, 2026')
+    expect(within(popover).getByRole('radio', { name: 'Custom' })).toBeChecked()
   })
 
   it('explains a To date before the From date, and does not ask the API', async () => {
     await showList([LUNCH], '/transactions?from=2026-09-30')
     const calls = listTransactions.mock.calls.length
+    const popover = openDates()
+    expect(within(popover).getByRole('radio', { name: 'Custom' })).toBeChecked()
 
-    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-01' } })
+    fireEvent.change(within(popover).getByLabelText('To'), { target: { value: '2026-09-01' } })
 
     expect(await screen.findByText('The To date is before the From date. Change one of them to see your transactions.')).toBeInTheDocument()
-    expect(screen.getByLabelText('To')).toHaveAccessibleDescription('Choose a date on or after the From date.')
-    expect(screen.getByLabelText('To')).toHaveAttribute('aria-invalid', 'true')
+    expect(within(popover).getByLabelText('To')).toHaveAccessibleDescription('Choose a date on or after the From date.')
+    expect(within(popover).getByLabelText('To')).toHaveAttribute('aria-invalid', 'true')
     expect(listTransactions).toHaveBeenCalledTimes(calls)
   })
 
@@ -388,81 +533,220 @@ describe('date range filter (US-25)', () => {
     await showList([LUNCH], '/transactions?from=2026-02-30&to=soon')
 
     expect(listTransactions).toHaveBeenCalledWith(NO_FILTERS)
+    expect(dateButton()).toHaveAccessibleName('Date: All time')
   })
 })
 
-describe('search and filters together, and Clear all (US-26)', () => {
-  const EVERYTHING = '/transactions?q=lunch&category=Food&category=Other&from=2026-09-01&to=2026-09-30&page=2'
+describe('search and filters together, and Clear filters (US-26)', () => {
+  const EVERYTHING = '/transactions?q=lunch&category=Food&category=Other&from=2026-09-05&to=2026-09-28&page=2'
 
-  it('sends every filter at once and shows them all on the form', async () => {
+  it('sends every filter at once and shows them all on the toolbar', async () => {
     await showList([LUNCH], EVERYTHING)
 
     expect(listTransactions).toHaveBeenCalledWith({
       page: 2,
       q: 'lunch',
       categories: ['Food', 'Other'],
-      from: '2026-09-01',
-      to: '2026-09-30',
+      from: '2026-09-05',
+      to: '2026-09-28',
     })
     expect(searchBox()).toHaveValue('lunch')
-    expect(screen.getByRole('checkbox', { name: 'Food' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Other' })).toBeChecked()
-    expect(screen.getByLabelText('From')).toHaveValue('2026-09-01')
-    expect(screen.getByLabelText('To')).toHaveValue('2026-09-30')
+    expect(categoryButton()).toHaveAccessibleName('Category: 2 categories')
+    const categories = openCategories()
+    expect(within(categories).getByRole('checkbox', { name: 'Food' })).toBeChecked()
+    expect(within(categories).getByRole('checkbox', { name: 'Other' })).toBeChecked()
+    fireEvent.keyDown(categories, { key: 'Escape' })
+    const dates = openDates()
+    expect(within(dates).getByLabelText('From')).toHaveValue('2026-09-05')
+    expect(within(dates).getByLabelText('To')).toHaveValue('2026-09-28')
   })
 
   it('keeps the other filters when one changes', async () => {
     await showList([LUNCH], EVERYTHING)
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Other' }))
+    fireEvent.click(within(openCategories()).getByRole('checkbox', { name: 'Other' }))
 
     await waitFor(() =>
-      expect(lastQuery()).toEqual({ page: 1, q: 'lunch', categories: ['Food'], from: '2026-09-01', to: '2026-09-30' })
+      expect(lastQuery()).toEqual({ page: 1, q: 'lunch', categories: ['Food'], from: '2026-09-05', to: '2026-09-28' })
     )
   })
 
-  it('Clear all resets search, categories, dates and page, and focuses the search box', async () => {
+  it('Clear filters resets search, categories, dates and page, and focuses the search box', async () => {
     await showList([LUNCH], EVERYTHING)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
     await waitFor(() => expect(lastQuery()).toEqual(NO_FILTERS))
     expect(searchBox()).toHaveValue('')
-    expect(screen.getByRole('checkbox', { name: 'Food' })).not.toBeChecked()
-    expect(screen.getByLabelText('From')).toHaveValue('')
-    expect(screen.getByLabelText('To')).toHaveValue('')
+    expect(categoryButton()).toHaveAccessibleName('Category: All categories')
+    expect(dateButton()).toHaveAccessibleName('Date: All time')
     expect(searchBox()).toHaveFocus()
   })
 
-  it('Clear all also clears search text that has not been searched yet', async () => {
+  it('Clear filters also clears search text that has not been searched yet', async () => {
     await showList()
     fireEvent.change(searchBox(), { target: { value: 'half typed' } })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
     expect(searchBox()).toHaveValue('')
   })
 
-  it('disables Clear all when there is nothing to clear', async () => {
+  it('disables Clear filters when there is nothing to clear', async () => {
     await showList()
 
-    expect(screen.getByRole('button', { name: 'Clear all' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeDisabled()
+  })
+})
+
+describe('filters sheet on phones', () => {
+  function filtersButton() {
+    return screen.getByRole('button', { name: /^Filters/ })
+  }
+
+  it('says how many filters are on', async () => {
+    await showList([LUNCH], '/transactions?category=Food&category=Other&from=2026-09-01')
+
+    expect(filtersButton()).toHaveAccessibleName('Filters, 3 active')
+  })
+
+  it('opens the categories and dates in a sheet that applies them as they change', async () => {
+    await showList()
+    expect(filtersButton()).toHaveAccessibleName('Filters')
+
+    fireEvent.click(filtersButton())
+    const sheet = screen.getByRole('dialog', { name: 'Filters' })
+    fireEvent.click(within(sheet).getByRole('checkbox', { name: 'Food' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, categories: ['Food'] }))
+    expect(within(sheet).getByRole('radio', { name: 'All time' })).toBeChecked()
+  })
+
+  it('Show results closes the sheet and returns focus to Filters', async () => {
+    await showList()
+    fireEvent.click(filtersButton())
+
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('button', { name: 'Show results' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(filtersButton()).toHaveFocus())
+  })
+
+  it('Clear filters in the sheet clears the categories and dates but keeps the search', async () => {
+    await showList([LUNCH], '/transactions?q=lunch&category=Food&from=2026-09-01')
+    fireEvent.click(filtersButton())
+
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('button', { name: 'Clear filters' }))
+
+    await waitFor(() => expect(lastQuery()).toEqual({ ...NO_FILTERS, q: 'lunch' }))
   })
 })
 
 describe('adding a transaction', () => {
+  it('opens a drawer on Amount, with Expense chosen and the page behind it inert', async () => {
+    await showList()
+
+    const drawer = await openAdd()
+
+    expect(drawer).toHaveAttribute('aria-modal', 'true')
+    expect(within(drawer).getByRole('radio', { name: 'Expense' })).toBeChecked()
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveFocus()
+    expect(within(drawer).getByLabelText('Date').value).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(screen.getByRole('main', { hidden: true }).closest('body > *')).toHaveAttribute('inert')
+  })
+
+  it('switches to Income, which has no category and its own title and button', async () => {
+    await showList()
+    const drawer = await openAdd()
+    fireEvent.change(within(drawer).getByLabelText('Amount ($)'), { target: { value: '9' } })
+
+    fireEvent.click(within(drawer).getByRole('radio', { name: 'Income' }))
+
+    expect(screen.getByRole('dialog', { name: 'Add income' })).toBe(drawer)
+    expect(within(drawer).queryByLabelText('Category')).not.toBeInTheDocument()
+    expect(within(drawer).getByRole('button', { name: 'Save income' })).toBeInTheDocument()
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveValue('9')
+  })
+
+  it.each([
+    ['Cancel', (drawer) => fireEvent.click(within(drawer).getByRole('button', { name: 'Cancel' }))],
+    ['Close', (drawer) => fireEvent.click(within(drawer).getByRole('button', { name: 'Close' }))],
+    ['Escape', (drawer) => fireEvent.keyDown(drawer, { key: 'Escape' })],
+  ])('%s closes the drawer without saving and returns focus to Add transaction', async (_, close) => {
+    await showList()
+    const drawer = await openAdd()
+
+    close(drawer)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(createTransaction).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus())
+  })
+
+  it('keeps the drawer open with the errors when the form is invalid', async () => {
+    await showList()
+    const drawer = await openAdd()
+
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save expense' }))
+
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveAccessibleDescription(expect.stringContaining('Enter an amount.'))
+    expect(within(drawer).getByLabelText('Category')).toHaveAccessibleDescription('Choose a category.')
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveFocus()
+    expect(createTransaction).not.toHaveBeenCalled()
+  })
+
+  it('closes after saving, says what was saved and returns focus to Add transaction', async () => {
+    createTransaction.mockImplementation(async (payload) => savedFrom(payload))
+    await showList()
+
+    await addExpense({ amount: '12.50' })
+
+    expect(await screen.findByText('Expense of $12.50 saved.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({ amount_cents: 1250, type: 'expense', category: 'Food' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus())
+  })
+
+  it('locks the drawer while saving, so nothing is sent twice and it cannot be closed', async () => {
+    const save = deferred()
+    createTransaction.mockReturnValue(save.promise)
+    await showList()
+
+    await addExpense()
+
+    const drawer = screen.getByRole('dialog', { name: 'Add expense' })
+    expect(within(drawer).getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    expect(within(drawer).getByRole('button', { name: 'Close' })).toBeDisabled()
+    expect(within(drawer).getByRole('radio', { name: 'Income' })).toBeDisabled()
+    fireEvent.keyDown(drawer, { key: 'Escape' })
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    fireEvent.submit(within(drawer).getByLabelText('Amount ($)').closest('form'))
+    expect(createTransaction).toHaveBeenCalledTimes(1)
+
+    await act(async () => save.resolve(savedFrom({ amount_cents: 475, date: '2026-10-05', type: 'expense', category: 'Food' })))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('keeps the drawer and the typed values when saving fails', async () => {
+    createTransaction.mockRejectedValue(SERVER_ERROR)
+    await showList()
+
+    await addExpense({ amount: '4.75' })
+
+    const drawer = screen.getByRole('dialog', { name: 'Add expense' })
+    expect(await within(drawer).findByRole('alert')).toHaveTextContent('Something went wrong on our end. Please try again in a moment.')
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveValue('4.75')
+  })
+
   it('loads the list again so the new transaction shows', async () => {
     const coffee = makeTransaction({ id: '50', description: 'Coffee', date: '2026-10-09' })
     createTransaction.mockImplementation(async (payload) => savedFrom(payload, { id: '50', date: '2026-10-09' }))
     await showList()
     listTransactions.mockResolvedValue(pageOf([coffee, LUNCH, SALARY, RENT]))
 
-    fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '4.75' } })
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } })
-    fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: 'Coffee' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+    await addExpense({ description: 'Coffee' })
 
-    expect(await within(transactionList()).findByText('Coffee')).toBeInTheDocument()
+    expect(await within(transactionTable()).findByText('Coffee')).toBeInTheDocument()
     expect(descriptionsInList()).toEqual(['Coffee', 'Lunch', 'Salary', 'Rent'])
     // The new row shows straight away; the reload starts in an effect, which can run in
     // a later task.
@@ -474,9 +758,7 @@ describe('adding a transaction', () => {
     createTransaction.mockImplementation(async (payload) => savedFrom(payload))
     await showList([LUNCH], '/transactions?category=Food&page=2')
 
-    fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '4.75' } })
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+    await addExpense()
 
     await waitFor(() => expect(listTransactions).toHaveBeenCalledTimes(2))
     expect(lastQuery()).toEqual({ ...NO_FILTERS, page: 2, categories: ['Food'] })
@@ -491,9 +773,7 @@ describe('adding a transaction', () => {
     renderApp()
 
     await screen.findByText('Loading transactions…')
-    fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '4.75' } })
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+    await addExpense()
     await screen.findByText('Expense of $4.75 saved.')
 
     await act(async () => secondLoad.resolve(pageOf([coffee, LUNCH])))
@@ -505,11 +785,11 @@ describe('adding a transaction', () => {
 
 describe('editing a transaction', () => {
   async function openEdit(description) {
-    fireEvent.click(within(rowFor(description)).getByRole('button', { name: /^Edit/ }))
+    chooseAction(description, 'Edit')
     return screen.findByRole('dialog')
   }
 
-  it('opens a dialog filled in with the current values, with focus on the first field', async () => {
+  it('opens a drawer filled in with the current values, with focus on the amount', async () => {
     await showList()
 
     const dialog = await openEdit('Lunch')
@@ -586,7 +866,7 @@ describe('editing a transaction', () => {
     expect(row).toHaveTextContent('Other')
     expect(row).toHaveTextContent('−$1,000.50')
     expect(statusMessage()).toContain('Transaction updated.')
-    await waitFor(() => expect(within(row).getByRole('button', { name: /^Edit/ })).toHaveFocus())
+    await waitFor(() => expect(within(row).getByRole('button', { name: /^Actions for/ })).toHaveFocus())
 
     const moved = savedFrom({ amount_cents: 100050, date: '2026-10-08', type: 'expense', category: 'Other', description: 'Rent and parking' }, { id: '3' })
     await act(async () => reload.resolve(pageOf([moved, LUNCH, SALARY])))
@@ -618,7 +898,7 @@ describe('editing a transaction', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(updateTransaction).not.toHaveBeenCalled()
     expect(rowFor('Lunch')).toHaveTextContent('−$12.50')
-    await waitFor(() => expect(within(rowFor('Lunch')).getByRole('button', { name: /^Edit/ })).toHaveFocus())
+    await waitFor(() => expect(actionsButton('Lunch')).toHaveFocus())
     dialog = await openEdit('Lunch')
     expect(within(dialog).getByLabelText('Amount ($)')).toHaveValue('12.50')
   })
@@ -711,24 +991,24 @@ describe('editing a transaction', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('keeps Tab and Shift+Tab inside the dialog', async () => {
+  it('keeps Tab and Shift+Tab inside the drawer, from Save changes round to Close', async () => {
     await showList()
     const dialog = await openEdit('Lunch')
-    const amount = within(dialog).getByLabelText('Amount ($)')
-    const cancel = within(dialog).getByRole('button', { name: 'Cancel' })
+    const close = within(dialog).getByRole('button', { name: 'Close' })
+    const save = within(dialog).getByRole('button', { name: 'Save changes' })
 
-    cancel.focus()
-    fireEvent.keyDown(cancel, { key: 'Tab' })
-    expect(amount).toHaveFocus()
+    save.focus()
+    fireEvent.keyDown(save, { key: 'Tab' })
+    expect(close).toHaveFocus()
 
-    fireEvent.keyDown(amount, { key: 'Tab', shiftKey: true })
-    expect(cancel).toHaveFocus()
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
+    expect(save).toHaveFocus()
   })
 })
 
 describe('deleting a transaction', () => {
   async function openDelete(description) {
-    fireEvent.click(within(rowFor(description)).getByRole('button', { name: /^Delete/ }))
+    chooseAction(description, 'Delete')
     return screen.findByRole('dialog')
   }
 
@@ -748,7 +1028,7 @@ describe('deleting a transaction', () => {
   it.each([
     ['Cancel', (dialog) => fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))],
     ['Escape', (dialog) => fireEvent.keyDown(dialog, { key: 'Escape' })],
-  ])('%s keeps the transaction and returns focus to its Delete button', async (_, close) => {
+  ])('%s keeps the transaction and returns focus to its actions button', async (_, close) => {
     await showList()
     const dialog = await openDelete('Rent')
 
@@ -756,7 +1036,7 @@ describe('deleting a transaction', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(deleteTransaction).not.toHaveBeenCalled()
-    await waitFor(() => expect(within(rowFor('Rent')).getByRole('button', { name: /^Delete/ })).toHaveFocus())
+    await waitFor(() => expect(actionsButton('Rent')).toHaveFocus())
   })
 
   it('removes the transaction at once, then reloads the same page', async () => {
@@ -847,7 +1127,7 @@ describe('deleting a transaction', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     act(() => endSession())
-    await screen.findByRole('heading', { name: 'Login' })
+    await screen.findByRole('heading', { name: 'Log in' })
     await act(async () => request.resolve())
 
     expect(currentPath()).toBe('/login')

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { deleteBudget } from '../api/budgets'
-import Dialog from '../components/Dialog'
 import ErrorAlert from '../components/ErrorAlert'
+import Button from '../components/ui/Button'
+import Dialog from '../components/ui/Dialog'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
 import { formatCents } from '../transactions/money'
-import '../components/buttons.css'
 
 /**
  * Asks the user to confirm removing a category's monthly limit, then removes it. Cancel
@@ -74,12 +74,12 @@ export default function RemoveBudgetDialog({ budget, onRemoved, onNotFound, onCl
       {error && <ErrorAlert error={error} context="The limit was not removed." />}
 
       <div className="dialog__actions">
-        <button ref={cancelRef} type="button" className="button button--secondary" onClick={onClose} disabled={isRemoving}>
+        <Button ref={cancelRef} onClick={onClose} disabled={isRemoving}>
           Cancel
-        </button>
-        <button type="button" className="button button--danger" onClick={handleRemove} disabled={isRemoving}>
+        </Button>
+        <Button variant="danger" onClick={handleRemove} disabled={isRemoving}>
           {isRemoving ? 'Removing…' : 'Remove limit'}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

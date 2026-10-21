@@ -1,31 +1,35 @@
 import { useId } from 'react'
-import FormField from '../components/FormField'
 import SessionEndedMessage from '../components/SessionEndedMessage'
+import Alert from '../components/ui/Alert'
+import Button from '../components/ui/Button'
+import Field from '../components/ui/Field'
+import Input from '../components/ui/Input'
+import SegmentedControl from '../components/ui/SegmentedControl'
+import Select from '../components/ui/Select'
 import { CATEGORIES, MAX_DESCRIPTION_LENGTH, MIN_DATE, TRANSACTION_TYPES } from './constants'
-import TransactionTypeSwitch from './TransactionTypeSwitch'
 import { useTransactionForm } from './useTransactionForm'
-import '../components/buttons.css'
 import './TransactionForm.css'
 
+const TYPE_OPTIONS = Object.entries(TRANSACTION_TYPES).map(([value, { label }]) => ({ value, label }))
+
 /**
- * Form for adding an expense or an income, or editing one. The heading, button,
- * fields and rules follow `type` (see TRANSACTION_TYPES); the expense form has a
- * category, the income form doesn't.
+ * Form for adding an expense or an income, or editing one, inside the add or edit
+ * drawer (whose title names it). The button, fields and rules follow `type` (see
+ * TRANSACTION_TYPES); the expense form has a category, the income form doesn't.
  *
- * With `onTypeChange`, the form starts with an Expense or Income switch. Changing
- * type keeps the amount, date and description typed so far and clears any error or
- * confirmation. The switch is locked while a save is in progress.
+ * With `onTypeChange`, the form starts with an Expense or Income switch. Changing type
+ * keeps the amount, date and description typed so far and clears any error. The switch
+ * is locked while a save is in progress.
  *
- * With `transaction`, the form edits it instead: it starts with its values, shows its
- * type without letting it change, and has no heading of its own (the dialog around it
- * has one).
+ * With `transaction`, the form edits it instead: it starts with its values and shows
+ * its type without letting it change.
  *
  * @param {object} props
  * @param {'income'|'expense'} props.type
  * @param {(type: 'income'|'expense') => void} [props.onTypeChange]
- * @param {(transaction: object) => void} [props.onSaved]
+ * @param {(transaction: object, message?: string) => void} [props.onSaved] See useTransactionForm.
  * @param {object} [props.transaction] The saved transaction to edit.
- * @param {() => void} [props.onCancel] Shows a Cancel button that calls this.
+ * @param {() => void} props.onCancel
  * @param {() => void} [props.onNotFound] See useTransactionForm.
  * @param {(isSubmitting: boolean) => void} [props.onSubmittingChange] See useTransactionForm.
  * @param {{ current: HTMLElement|null }} [props.firstFieldRef] See useTransactionForm.
@@ -40,105 +44,94 @@ export default function TransactionForm({
   onSubmittingChange,
   firstFieldRef,
 }) {
-  const { label, title, submitLabel, fields } = TRANSACTION_TYPES[type]
+  const { label, submitLabel, fields } = TRANSACTION_TYPES[type]
   const isEditing = Boolean(transaction)
-  const { values, errors, formError, successMessage, isSubmitting, fieldProps, handleSubmit } =
-    useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange, firstFieldRef })
+  const { values, errors, formError, isSubmitting, fieldProps, handleSubmit } = useTransactionForm({
+    type,
+    transaction,
+    onSaved,
+    onNotFound,
+    onSubmittingChange,
+    firstFieldRef,
+  })
 
-  // Unique per form, so the add form and an edit dialog can be on the page together.
-  // The same input stays in place when the type changes, so ids don't include it.
+  // Unique per form. The same input stays in place when the type changes, so ids
+  // don't include it.
   const idPrefix = useId()
   const id = (field) => `${idPrefix}-${field}`
-  const headingId = id('heading')
   const descriptionLength = values.description.trim().length
 
   return (
-    <form
-      className="transaction-form"
-      onSubmit={handleSubmit}
-      noValidate
-      aria-labelledby={isEditing ? undefined : headingId}
-    >
-      {isEditing ? (
+    <form className="transaction-form" onSubmit={handleSubmit} noValidate>
+      {isEditing && (
         <p className="transaction-form__type">
           Type: <strong>{label}</strong>
         </p>
-      ) : (
-        <h2 id={headingId}>{title}</h2>
       )}
 
       {onTypeChange && (
-        <TransactionTypeSwitch
+        <SegmentedControl
           name={id('type')}
+          legend="Transaction type"
           value={type}
+          options={TYPE_OPTIONS}
           onChange={onTypeChange}
           disabled={isSubmitting}
         />
       )}
 
-      <FormField id={id('amount')} label="Amount ($)" hint="For example 12.50" error={errors.amount}>
+      <Field id={id('amount')} label="Amount ($)" hint="For example 12.50" error={errors.amount}>
         {(controlProps) => (
-          <input
+          <Input
             {...controlProps}
             {...fieldProps('amount')}
+            className="tabular"
             type="text"
             inputMode="decimal"
             autoComplete="off"
             placeholder="0.00"
           />
         )}
-      </FormField>
+      </Field>
 
-      <FormField id={id('date')} label="Date" error={errors.date}>
-        {(controlProps) => <input {...controlProps} {...fieldProps('date')} type="date" min={MIN_DATE} />}
-      </FormField>
+      <Field id={id('date')} label="Date" error={errors.date}>
+        {(controlProps) => <Input {...controlProps} {...fieldProps('date')} type="date" min={MIN_DATE} />}
+      </Field>
 
       {fields.includes('category') && (
-        <FormField id={id('category')} label="Category" error={errors.category}>
+        <Field id={id('category')} label="Category" error={errors.category}>
           {(controlProps) => (
-            <select {...controlProps} {...fieldProps('category')}>
+            <Select {...controlProps} {...fieldProps('category')}>
               <option value="">Choose a category</option>
               {CATEGORIES.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
-        </FormField>
+        </Field>
       )}
 
-      <FormField
+      <Field
         id={id('description')}
         label="Description"
         optional
         hint={`${descriptionLength} of ${MAX_DESCRIPTION_LENGTH} characters`}
         error={errors.description}
       >
-        {(controlProps) => (
-          <input {...controlProps} {...fieldProps('description')} type="text" autoComplete="off" />
-        )}
-      </FormField>
+        {(controlProps) => <Input {...controlProps} {...fieldProps('description')} type="text" autoComplete="off" />}
+      </Field>
 
-      {formError && (
-        <div className="transaction-form__alert" role="alert">
-          {formError.kind === 'unauthorized' ? <SessionEndedMessage /> : <p>{formError.message}</p>}
-        </div>
-      )}
+      {formError && <Alert>{formError.kind === 'unauthorized' ? <SessionEndedMessage /> : <p>{formError.message}</p>}</Alert>}
 
-      <div className="transaction-form__status" role="status">
-        {successMessage}
-      </div>
-
-      <div className="transaction-form__buttons">
-        <button type="submit" className="transaction-form__submit" disabled={isSubmitting}>
+      <div className="dialog__actions">
+        <Button onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
           {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : submitLabel}
-        </button>
-        {onCancel && (
-          <button type="button" className="button button--secondary" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </button>
-        )}
+        </Button>
       </div>
     </form>
   )

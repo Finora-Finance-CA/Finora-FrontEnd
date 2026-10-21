@@ -1,13 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createBudget, updateBudget } from '../api/budgets'
 import ErrorAlert from '../components/ErrorAlert'
-import FormField from '../components/FormField'
+import Button from '../components/ui/Button'
+import Field from '../components/ui/Field'
+import Input from '../components/ui/Input'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
 import CategoryLabel from '../transactions/CategoryLabel'
 import { centsToDollarString, formatCents } from '../transactions/money'
 import { parseLimitToCents } from './limits'
 import RemoveBudgetDialog from './RemoveBudgetDialog'
-import '../components/buttons.css'
 import './BudgetRow.css'
 
 // The API names the field limit_cents; people see "Limit".
@@ -165,7 +166,7 @@ export default function BudgetRow({ category, budget, onSaved, onRemoved, onOutO
         <h2 className="budget-row__name">
           <CategoryLabel category={category} />
         </h2>
-        <p className={`budget-row__limit${budget ? '' : ' budget-row__limit--none'}`}>
+        <p className={`budget-row__limit tabular${budget ? '' : ' budget-row__limit--none'}`}>
           {budget ? `${formatCents(budget.limit_cents)} a month` : 'No limit set'}
         </p>
       </div>
@@ -174,19 +175,13 @@ export default function BudgetRow({ category, budget, onSaved, onRemoved, onOutO
         <div className="budget-row__actions">
           {budget ? (
             <>
-              <button
-                ref={primaryRef}
-                type="button"
-                className="button button--secondary button--compact"
-                onClick={openForm}
-                aria-label={`Edit ${category} limit`}
-              >
+              <Button ref={primaryRef} size="sm" onClick={openForm} aria-label={`Edit ${category} limit`}>
                 Edit
-              </button>
-              <button
+              </Button>
+              <Button
                 ref={removeRef}
-                type="button"
-                className="button button--secondary button--compact"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setMessage('')
                   setIsRemoving(true)
@@ -194,29 +189,24 @@ export default function BudgetRow({ category, budget, onSaved, onRemoved, onOutO
                 aria-label={`Remove ${category} limit`}
               >
                 Remove
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              ref={primaryRef}
-              type="button"
-              className="button button--secondary button--compact"
-              onClick={openForm}
-              aria-label={`Set limit for ${category}`}
-            >
+            <Button ref={primaryRef} size="sm" onClick={openForm} aria-label={`Set limit for ${category}`}>
               Set limit
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {isEditing && (
         <form className="budget-row__form" onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate>
-          <FormField id={fieldId} label={`Monthly limit for ${category} ($)`} hint="For example 500.00" error={error}>
+          <Field id={fieldId} label={`Monthly limit for ${category} ($)`} hint="For example 500.00" error={error}>
             {(controlProps) => (
-              <input
+              <Input
                 {...controlProps}
                 ref={inputRef}
+                className="tabular"
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
@@ -225,15 +215,15 @@ export default function BudgetRow({ category, budget, onSaved, onRemoved, onOutO
                 onChange={handleChange}
               />
             )}
-          </FormField>
+          </Field>
           {formError && <ErrorAlert error={formError.error} context={formError.context} />}
           <div className="budget-row__buttons">
-            <button type="submit" className="button button--primary" disabled={isSaving}>
+            <Button type="submit" variant="primary" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save limit'}
-            </button>
-            <button type="button" className="button button--secondary" onClick={() => closeForm()} disabled={isSaving}>
+            </Button>
+            <Button onClick={() => closeForm()} disabled={isSaving}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

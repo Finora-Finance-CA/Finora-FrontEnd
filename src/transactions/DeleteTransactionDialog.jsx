@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { deleteTransaction } from '../api/transactions'
-import Dialog from '../components/Dialog'
 import ErrorAlert from '../components/ErrorAlert'
+import Button from '../components/ui/Button'
+import Dialog from '../components/ui/Dialog'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
 import { TRANSACTION_TYPES } from './constants'
 import { formatDate } from './dates'
 import { formatCents } from './money'
-import '../components/buttons.css'
 import './DeleteTransactionDialog.css'
 
 /**
@@ -98,23 +98,17 @@ export default function DeleteTransactionDialog({
           <dd>{description || 'No description'}</dd>
         </div>
       </dl>
-      <p>This can't be undone.</p>
+      <p className="delete-summary__note">This can't be undone.</p>
 
       {error && <ErrorAlert error={error} context="The transaction was not deleted." />}
 
       <div className="dialog__actions">
-        <button
-          ref={cancelRef}
-          type="button"
-          className="button button--secondary"
-          onClick={onClose}
-          disabled={isDeleting}
-        >
+        <Button ref={cancelRef} onClick={onClose} disabled={isDeleting}>
           Cancel
-        </button>
-        <button type="button" className="button button--danger" onClick={handleDelete} disabled={isDeleting}>
+        </Button>
+        <Button variant="danger" onClick={handleDelete} disabled={isDeleting}>
           {isDeleting ? 'Deleting…' : 'Delete'}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

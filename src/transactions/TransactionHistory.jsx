@@ -1,11 +1,14 @@
+import { CalendarX, CircleAlert, Inbox, Plus, SearchX } from 'lucide-react'
 import { useId, useRef, useState } from 'react'
 import ErrorAlert from '../components/ErrorAlert'
+import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
 import DeleteTransactionDialog from './DeleteTransactionDialog'
 import EditTransactionDialog from './EditTransactionDialog'
 import Pagination from './Pagination'
 import TransactionFilters from './TransactionFilters'
-import TransactionListItem from './TransactionListItem'
-import '../components/buttons.css'
+import TransactionTable from './TransactionTable'
 import './TransactionHistory.css'
 
 const MESSAGES = {
@@ -26,14 +29,24 @@ const MESSAGES = {
  * @param {boolean} props.filtersActive
  * @param {boolean} props.rangeReversed
  * @param {(changes: object, options?: { replace?: boolean }) => void} props.onQueryChange
- * @param {() => void} props.onAddFirst Takes the user to the add form.
+ * @param {() => void} props.onAddFirst Opens the add drawer.
+ * @param {string} props.message What just happened, e.g. "Transaction deleted.".
+ * @param {(message: string) => void} props.onMessage Replaces the message ('' clears it).
  */
-export default function TransactionHistory({ list, query, filtersActive, rangeReversed, onQueryChange, onAddFirst }) {
+export default function TransactionHistory({
+  list,
+  query,
+  filtersActive,
+  rangeReversed,
+  onQueryChange,
+  onAddFirst,
+  message,
+  onMessage,
+}) {
   const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
-  const [message, setMessage] = useState('')
-  // The Edit or Delete button that opened the dialog gets focus back when it closes;
-  // the heading does if that button's row has gone.
+  // The ⋯ button that opened the dialog gets focus back when it closes; the heading
+  // does if that button's row has gone.
   const openerRef = useRef(null)
   const headingRef = useRef(null)
   const searchRef = useRef(null)
@@ -41,31 +54,31 @@ export default function TransactionHistory({ list, query, filtersActive, rangeRe
 
   function openDialog(open, transaction, opener) {
     openerRef.current = opener
-    setMessage('')
+    onMessage('')
     open(transaction)
   }
 
   function handleSaved(transaction) {
     list.showSaved(transaction)
     setEditing(null)
-    setMessage(MESSAGES.updated)
+    onMessage(MESSAGES.updated)
   }
 
   function handleDeleted(transaction) {
     list.showRemoved(transaction.id)
     setDeleting(null)
-    setMessage(MESSAGES.deleted)
+    onMessage(MESSAGES.deleted)
   }
 
   function handleGone(transaction, text) {
     list.showRemoved(transaction.id)
     setEditing(null)
     setDeleting(null)
-    setMessage(text)
+    onMessage(text)
   }
 
   function handleQueryChange(changes, options) {
-    setMessage('')
+    onMessage('')
     onQueryChange(changes, options)
   }
 
@@ -83,10 +96,6 @@ export default function TransactionHistory({ list, query, filtersActive, rangeRe
 
   return (
     <section className="transaction-history" aria-labelledby={headingId}>
-      <h2 id={headingId} ref={headingRef} tabIndex={-1}>
-        Transaction history
-      </h2>
-
       <TransactionFilters
         query={query}
         onChange={handleQueryChange}
@@ -99,15 +108,23 @@ export default function TransactionHistory({ list, query, filtersActive, rangeRe
         {message}
       </p>
 
-      <ListContent
-        list={list}
-        filtersActive={filtersActive}
-        onClearFilters={clearFilters}
-        onAddFirst={onAddFirst}
-        onPageChange={goToPage}
-        onEdit={(transaction, opener) => openDialog(setEditing, transaction, opener)}
-        onDelete={(transaction, opener) => openDialog(setDeleting, transaction, opener)}
-      />
+      <Card padded={false}>
+        <div className="transaction-history__header">
+          <h2 id={headingId} ref={headingRef} tabIndex={-1} className="transaction-history__title">
+            Transaction history
+          </h2>
+        </div>
+        <ListContent
+          list={list}
+          headingId={headingId}
+          filtersActive={filtersActive}
+          onClearFilters={clearFilters}
+          onAddFirst={onAddFirst}
+          onPageChange={goToPage}
+          onEdit={(transaction, opener) => openDialog(setEditing, transaction, opener)}
+          onDelete={(transaction, opener) => openDialog(setDeleting, transaction, opener)}
+        />
+      </Card>
 
       {editing && (
         <EditTransactionDialog
@@ -133,63 +150,76 @@ export default function TransactionHistory({ list, query, filtersActive, rangeRe
   )
 }
 
-function LoadingNote() {
+// Placeholder rows, with the words for screen readers.
+function Loading({ headingId }) {
   return (
-    <p className="transaction-history__note" role="status">
-      Loading transactions…
-    </p>
+    <>
+      <p className="visually-hidden" role="status">
+        Loading transactions…
+      </p>
+      <TransactionTable labelledBy={headingId} loading />
+    </>
   )
 }
 
-function ListContent({ list, filtersActive, onClearFilters, onAddFirst, onPageChange, onEdit, onDelete }) {
+function ListContent({ list, headingId, filtersActive, onClearFilters, onAddFirst, onPageChange, onEdit, onDelete }) {
   const { status, isRefreshing, transactions, pagination } = list
 
   if (status === 'idle') {
     return (
-      <p className="transaction-history__note">
+      <EmptyState icon={CalendarX} title="Check the date range">
         The To date is before the From date. Change one of them to see your transactions.
-      </p>
+      </EmptyState>
     )
   }
 
-  if (status === 'loading') return <LoadingNote />
+  if (status === 'loading') return <Loading headingId={headingId} />
 
   if (status === 'error') {
     return (
-      <div className="transaction-history__error">
+      <EmptyState
+        icon={CircleAlert}
+        title="Transactions didn't load"
+        action={
+          list.error?.kind !== 'unauthorized' && (
+            <Button onClick={list.reload}>Try again</Button>
+          )
+        }
+      >
         <ErrorAlert error={list.error} context="We couldn't load your transactions." />
-        {list.error?.kind !== 'unauthorized' && (
-          <button type="button" className="button button--secondary" onClick={list.reload}>
-            Try again
-          </button>
-        )}
-      </div>
+      </EmptyState>
     )
   }
 
   if (transactions.length === 0) {
     // Emptied by a delete, or a page past the end: the next page is on its way.
-    if (isRefreshing || pagination.total_count > 0) return <LoadingNote />
+    if (isRefreshing || pagination.total_count > 0) return <Loading headingId={headingId} />
 
     if (filtersActive) {
       return (
-        <div className="transaction-history__empty">
-          <p>No transactions match your search and filters.</p>
-          <button type="button" className="button button--secondary" onClick={onClearFilters}>
-            Clear all filters
-          </button>
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title="No transactions match your search and filters."
+          action={<Button onClick={onClearFilters}>Clear all filters</Button>}
+        >
+          Try a different search, or clear the filters to see everything.
+        </EmptyState>
       )
     }
 
     return (
-      <div className="transaction-history__empty">
-        <p>You haven't added any transactions yet.</p>
-        {/* Secondary, so the form's Save button stays the page's one primary action. */}
-        <button type="button" className="button button--secondary" onClick={onAddFirst}>
-          Add your first transaction
-        </button>
-      </div>
+      <EmptyState
+        icon={Inbox}
+        title="You haven't added any transactions yet."
+        action={
+          // Secondary, so the page's Add transaction button stays its one primary action.
+          <Button icon={Plus} onClick={onAddFirst}>
+            Add your first transaction
+          </Button>
+        }
+      >
+        Add an expense or an income and it will show up here.
+      </EmptyState>
     )
   }
 
@@ -199,23 +229,27 @@ function ListContent({ list, filtersActive, onClearFilters, onAddFirst, onPageCh
 
   return (
     <>
-      <p className="transaction-history__summary" role="status">
-        {pagination.total_count <= transactions.length
-          ? `Showing ${pagination.total_count} ${noun}`
-          : `Showing ${first} to ${last} of ${pagination.total_count} ${noun}`}
-        {filtersActive && ' that match your search and filters'}.
-      </p>
-      <ul className={`transaction-list${isRefreshing ? ' transaction-list--refreshing' : ''}`} aria-busy={isRefreshing}>
-        {transactions.map((transaction) => (
-          <TransactionListItem key={transaction.id} transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
-        ))}
-      </ul>
-      <Pagination
-        page={pagination.page}
-        totalPages={pagination.total_pages}
-        onPageChange={onPageChange}
-        disabled={isRefreshing}
+      <TransactionTable
+        labelledBy={headingId}
+        transactions={transactions}
+        isRefreshing={isRefreshing}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
+      <div className="transaction-history__footer">
+        <p className="transaction-history__summary tabular" role="status">
+          {pagination.total_count <= transactions.length
+            ? `Showing ${pagination.total_count} ${noun}`
+            : `Showing ${first} to ${last} of ${pagination.total_count} ${noun}`}
+          {filtersActive && ' that match your search and filters'}.
+        </p>
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.total_pages}
+          onPageChange={onPageChange}
+          disabled={isRefreshing}
+        />
+      </div>
     </>
   )
 }

@@ -1,11 +1,16 @@
+import { CalendarX, CircleAlert } from 'lucide-react'
 import { useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import ErrorAlert from '../components/ErrorAlert'
+import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import PageHeader from '../components/ui/PageHeader'
 import MonthSelector from '../summary/MonthSelector'
 import { currentMonth, formatMonth, isValidMonth } from '../summary/months'
-import SummaryCards from '../summary/SummaryCards'
+import SummaryCards, { SummaryCardsSkeleton } from '../summary/SummaryCards'
 import { useMonthlySummary } from '../summary/useMonthlySummary'
-import '../components/buttons.css'
+import '../components/ui/Button.css'
 import './SummaryPage.css'
 
 /**
@@ -26,33 +31,40 @@ export default function SummaryPage() {
   )
 
   return (
-    <main id="main" className="page summary-page">
-      <h1>Monthly summary</h1>
-      <MonthSelector month={month} current={thisMonth} onChange={showMonth} />
+    <div className="page">
+      <PageHeader
+        title="Monthly summary"
+        subtitle="What came in, what went out and what's left."
+        actions={<MonthSelector month={month} current={thisMonth} onChange={showMonth} />}
+      />
       <SummaryContent summary={summary} month={month} />
-    </main>
+    </div>
   )
 }
 
 function SummaryContent({ summary, month }) {
   if (summary.status === 'loading') {
     return (
-      <p className="summary-page__note" role="status">
-        Loading summary…
-      </p>
+      <>
+        <p className="visually-hidden" role="status">
+          Loading summary…
+        </p>
+        <SummaryCardsSkeleton />
+      </>
     )
   }
 
   if (summary.status === 'error') {
     return (
-      <div className="summary-page__error">
-        <ErrorAlert error={summary.error} context={`We couldn't load the summary for ${formatMonth(month)}.`} />
-        {summary.error?.kind !== 'unauthorized' && (
-          <button type="button" className="button button--secondary" onClick={summary.reload}>
-            Try again
-          </button>
-        )}
-      </div>
+      <Card>
+        <EmptyState
+          icon={CircleAlert}
+          title="The summary didn't load"
+          action={summary.error?.kind !== 'unauthorized' && <Button onClick={summary.reload}>Try again</Button>}
+        >
+          <ErrorAlert error={summary.error} context={`We couldn't load the summary for ${formatMonth(month)}.`} />
+        </EmptyState>
+      </Card>
     )
   }
 
@@ -61,12 +73,21 @@ function SummaryContent({ summary, month }) {
     <>
       <SummaryCards summary={summary.summary} isRefreshing={summary.isRefreshing} />
       {count === 0 && !summary.isRefreshing ? (
-        <div className="summary-page__empty">
-          <p>No transactions in {formatMonth(summary.summary.month)}.</p>
-          <Link to="/transactions">Add a transaction</Link>
-        </div>
+        <Card>
+          <EmptyState
+            icon={CalendarX}
+            title={`No transactions in ${formatMonth(summary.summary.month)}.`}
+            action={
+              <Link to="/transactions" className="button button--secondary">
+                Add a transaction
+              </Link>
+            }
+          >
+            Income and expenses you add for this month will be totalled here.
+          </EmptyState>
+        </Card>
       ) : (
-        <p className="summary-page__note">
+        <p className="summary-page__note tabular">
           Based on {count} {count === 1 ? 'transaction' : 'transactions'} in {formatMonth(summary.summary.month)}.
         </p>
       )}

@@ -1,0 +1,20 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  line-height: var(--pill-h);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  color: var(--pill-text, var(--text));
+  background: var(--pill-bg, var(--surface-3));
+}
+
+@media (prefers-color-scheme: dark) {
+  .pill {
+    color: var(--pill-text-dark, var(--text));
+    background: var(--pill-bg-dark, var(--surface-3));
+  }
+}

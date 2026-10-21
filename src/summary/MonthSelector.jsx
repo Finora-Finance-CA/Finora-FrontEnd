@@ -1,11 +1,13 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Button from '../components/ui/Button'
+import IconButton from '../components/ui/IconButton'
 import { addMonths, formatMonth, MIN_MONTH } from './months'
-import '../components/buttons.css'
 import './MonthSelector.css'
 
 /**
- * Previous and Next month buttons around the month's name (US-28). The name is
- * announced to screen readers when it changes. "This month" appears when another
- * month is showing, to jump back.
+ * Previous and Next month buttons around the month's name (US-28). The buttons are
+ * named after the month they go to, and the name is announced to screen readers when
+ * it changes. "This month" appears when another month is showing, to jump back.
  *
  * @param {object} props
  * @param {string} props.month YYYY-MM, showing now.
@@ -18,39 +20,22 @@ export default function MonthSelector({ month, current, onChange }) {
 
   return (
     <div className="month-selector" role="group" aria-label="Choose a month">
-      <button
-        type="button"
-        className="button button--secondary"
-        onClick={() => onChange(previous)}
-        disabled={previous < MIN_MONTH}
-        aria-label={`Previous month, ${formatMonth(previous)}`}
-      >
-        <svg className="month-selector__arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="2" />
-        </svg>
-        <span className="month-selector__word">Previous</span>
-      </button>
-
-      <p className="month-selector__label" aria-live="polite" aria-atomic="true">
-        {formatMonth(month)}
-      </p>
-
-      <button
-        type="button"
-        className="button button--secondary"
-        onClick={() => onChange(next)}
-        aria-label={`Next month, ${formatMonth(next)}`}
-      >
-        <span className="month-selector__word">Next</span>
-        <svg className="month-selector__arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" />
-        </svg>
-      </button>
-
+      <div className="month-selector__stepper">
+        <IconButton
+          icon={ChevronLeft}
+          label={`Previous month, ${formatMonth(previous)}`}
+          onClick={() => onChange(previous)}
+          disabled={previous < MIN_MONTH}
+        />
+        <p className="month-selector__label" aria-live="polite" aria-atomic="true">
+          {formatMonth(month)}
+        </p>
+        <IconButton icon={ChevronRight} label={`Next month, ${formatMonth(next)}`} onClick={() => onChange(next)} />
+      </div>
       {month !== current && (
-        <button type="button" className="button button--secondary month-selector__today" onClick={() => onChange(current)}>
+        <Button size="sm" onClick={() => onChange(current)}>
           This month
-        </button>
+        </Button>
       )}
     </div>
   )
