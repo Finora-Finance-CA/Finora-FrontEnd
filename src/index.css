@@ -1,142 +1,235 @@
+/* Finora's design tokens and base styles. Components use these variables only: no
+   hard-coded colours, sizes or durations in component stylesheets. Dark mode follows
+   the operating system. Every text colour below is at least 4.5:1 (WCAG AA) against
+   every surface it sits on, in both modes. */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  /* Solid purple behind white text, e.g. a chosen option. 7:1 against #fff in both
-     modes. Matches the purple of the form's Save button and type switch. */
-  --accent-solid: #7e22ce;
-  --on-accent-solid: #fff;
-  /* Field borders, and error and success colours, used across pages (moved here from
-     FormField.css so pages without a form get them too). */
-  --field-border: #8d8794;
-  --error: #b42318;
-  --error-bg: #fef3f2;
-  --success: #067647;
-  --success-bg: #ecfdf3;
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  color-scheme: light;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Surfaces, from the page background up. */
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f1f3f5;
+  --surface-3: #e8ebef;
+  --border: #e2e5e9;
+  /* Edges of inputs, checkboxes and other controls: at least 3:1 against the page. */
+  --border-field: #80878f;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  --text: #14171c;
+  --text-muted: #5c6470;
+
+  /* The one accent (Cobalt). --accent is filled behind --on-accent text (6.47:1);
+     --accent-text is for links and selected text (6.86:1 on the page). */
+  --accent: #3451d1;
+  --accent-hover: #2a43b5;
+  --on-accent: #ffffff;
+  --accent-text: #3149c4;
+  --accent-tint: #eef1fd;
+  --ring: #3451d1;
+
+  /* Green and red are kept for money and status only. */
+  --positive: #067647;
+  --positive-bg: #ecfdf3;
+  --negative: #b42318;
+  --negative-bg: #fef3f2;
+  --danger: #b42318;
+  --danger-hover: #912018;
+  --on-danger: #ffffff;
+
+  --scrim: rgb(13 14 17 / 0.5);
+  --shadow-popover: 0 4px 16px rgb(16 24 40 / 0.12), 0 1px 3px rgb(16 24 40 / 0.08);
+  --shadow-overlay: 0 16px 48px rgb(16 24 40 / 0.18);
+
+  /* Type: Inter, 12 / 14 / 16 / 20 / 24 / 32. */
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 12px;
+  --leading-xs: 16px;
+  --text-sm: 14px;
+  --leading-sm: 20px;
+  --text-md: 16px;
+  --leading-md: 24px;
+  --text-lg: 20px;
+  --leading-lg: 28px;
+  --text-xl: 24px;
+  --leading-xl: 32px;
+  --text-2xl: 32px;
+  --leading-2xl: 40px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --tracking-tight: -0.01em;
+
+  /* Spacing on an 8px grid, with 4px for tight gaps. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --space-9: 64px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --radius-xs: 4px;
+
+  /* Every control is at least 44px tall, so it's easy to tap. Compact controls look
+     36px tall and stretch their tap area by --hit-extend on each side. */
+  --control-h: 44px;
+  --control-h-sm: 36px;
+  --hit-extend: 4px;
+  --checkbox-size: 18px;
+  --check-size: 14px;
+  --swatch-size: 10px;
+  --pill-h: 22px;
+  --badge-size: 20px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --focus-width: 2px;
+
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+  --content-max: 1160px;
+  --page-pad: var(--space-6);
+  --drawer-w: 440px;
+  --dialog-w: 440px;
+  --nav-sheet-w: 300px;
+  --auth-w: 400px;
+  --menu-min-w: 160px;
+  --popover-min-w: 240px;
+  --popover-max-w: 360px;
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  /* How far overlays travel as they appear: drawers and sheets, then menus. */
+  --motion-shift: 24px;
+  --motion-nudge: 4px;
+
+  --z-sidebar: 10;
+  --z-popover: 30;
+  --z-overlay: 40;
+  --z-skip: 50;
+
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #0d0e11;
+    --surface: #15171b;
+    --surface-2: #1c1f24;
+    --surface-3: #252930;
+    --border: #2a2e35;
+    --border-field: #69707c;
+
+    --text: #e9ebee;
+    --text-muted: #9da4ae;
+
+    --accent: #4a68ea;
+    --accent-hover: #5b77ee;
+    --accent-text: #8ea6ff;
+    --accent-tint: #1d2340;
+    --ring: #8ea6ff;
+
+    --positive: #4ade80;
+    --positive-bg: #10261a;
+    --negative: #f97066;
+    --negative-bg: #2a1514;
+
+    --scrim: rgb(0 0 0 / 0.6);
+    --shadow-popover: 0 4px 16px rgb(0 0 0 / 0.4);
+    --shadow-overlay: 0 16px 48px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* No motion for people who ask for less. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --page-pad: var(--space-4);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Keeps a focused control clear of the sticky top bar on small screens. */
+  scroll-padding-top: calc(var(--topbar-h) + var(--space-4));
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-regular);
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --field-border: #6b7280;
-    --error: #f97066;
-    --error-bg: rgba(249, 112, 102, 0.12);
-    --success: #47cd89;
-    --success-bg: rgba(71, 205, 137, 0.12);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+h2,
+h3,
 p {
   margin: 0;
 }
 
-/* Layout for a page's <main>, the same as the Transactions page's. */
-.page {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 32px;
-  text-align: left;
-
-  h1 {
-    margin: 0;
-  }
-
-  @media (max-width: 1024px) {
-    padding: 24px 16px;
-  }
+h1 {
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
 }
 
-.page__intro {
-  max-width: 60ch;
+h2 {
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
 }
 
-/* Shown while a page's code loads (see App.jsx). */
-.page-loading {
-  padding: 32px;
-  text-align: left;
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent-text);
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Every amount and count lines its digits up. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Hidden on screen but still read by screen readers, e.g. which row a button acts on. */
@@ -152,17 +245,20 @@ p {
   border: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* A page's content inside the app shell: one column, centred, never wider than
+   --content-max. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--page-pad);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* Shown while a page's code loads, or while the session is checked. */
+.page-loading {
+  padding: var(--page-pad);
+  color: var(--text-muted);
 }

@@ -1,0 +1,161 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  background: var(--scrim);
+  animation: dialog-fade var(--duration-base) var(--ease-out);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-overlay);
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.dialog__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+/* Buttons at the end of a dialog: secondary first, the main action last. */
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+/* Centred, for confirmations. */
+.dialog-backdrop--dialog {
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.dialog--dialog {
+  width: 100%;
+  max-width: var(--dialog-w);
+  border-radius: var(--radius-lg);
+  animation: dialog-pop var(--duration-base) var(--ease-out);
+}
+
+/* From the right on wide screens; from the bottom on phones (see below). */
+.dialog-backdrop--drawer {
+  justify-content: flex-end;
+}
+
+.dialog--drawer {
+  width: min(var(--drawer-w), 100%);
+  height: 100%;
+  border-width: 0 0 0 1px;
+  animation: dialog-from-right var(--duration-base) var(--ease-out);
+
+  /* The form's buttons stay in view while its fields scroll. */
+  .dialog__actions {
+    position: sticky;
+    bottom: calc(var(--space-5) * -1);
+    margin-bottom: calc(var(--space-5) * -1);
+    padding-bottom: var(--space-5);
+    background: var(--surface);
+  }
+}
+
+.dialog-backdrop--sheet {
+  align-items: flex-end;
+}
+
+.dialog--sheet {
+  width: 100%;
+  max-height: 85dvh;
+  border-width: 1px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  animation: dialog-from-bottom var(--duration-base) var(--ease-out);
+}
+
+.dialog--nav {
+  width: min(var(--nav-sheet-w), 85vw);
+  height: 100%;
+  border-width: 0 1px 0 0;
+  animation: dialog-from-left var(--duration-base) var(--ease-out);
+}
+
+@media (max-width: 767px) {
+  .dialog-backdrop--drawer {
+    align-items: flex-end;
+  }
+
+  .dialog--drawer {
+    width: 100%;
+    height: auto;
+    max-height: 92dvh;
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation-name: dialog-from-bottom;
+  }
+
+  .dialog__header {
+    padding: var(--space-4) var(--space-4) 0;
+  }
+
+  .dialog__body {
+    padding: var(--space-4);
+  }
+}
+
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes dialog-from-right {
+  from {
+    transform: translateX(var(--motion-shift));
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-from-bottom {
+  from {
+    transform: translateY(var(--motion-shift));
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-from-left {
+  from {
+    transform: translateX(calc(var(--motion-shift) * -1));
+    opacity: 0;
+  }
+}

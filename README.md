@@ -8,7 +8,9 @@ Syed Kazmi, Usayd Jahangiri, Ayaan Sethi
 ## Tech Stack
 - React with Vite (JavaScript, ESLint)
 - React Router
-- Plain CSS, one file per component, with shared colour tokens in `src/index.css` (light and dark mode)
+- Plain CSS, one file per component, using the design tokens in `src/index.css` (light and dark mode); see [UI system](#ui-system)
+- Inter, self-hosted with `@fontsource/inter` (latin subset, weights 400, 500 and 600)
+- `lucide-react` icons, imported one by one
 - Supabase Auth (`@supabase/supabase-js`) for sign-up, login and sessions
 - Vitest and Testing Library for tests
 
@@ -64,14 +66,14 @@ The app runs at http://localhost:5173.
 | `/budgets` | Signed-in users only | `BudgetsPage` |
 | `/` | Everyone | Redirects to `/transactions` (or `/login` if signed out) |
 
-Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only has the header, routing and sign-in check. "Loading page…" shows while a page's code arrives.
+Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only has the app shell, routing and sign-in check. "Loading page…" shows while a page's code arrives. The signed-in pages share one layout route (`<ProtectedRoute><AppShell /></ProtectedRoute>`), so the shell stays put while you move between them.
 
 ## How auth works
 - `src/lib/supabase.js` creates the one Supabase client for the app. Import it from here; never create another.
 - `src/context/AuthContext.jsx` provides the session to the app (`AuthProvider`). Read it with `useAuth()` from `src/context/useAuth.js`, which returns `{ session, user, loading, signOut }`. The provider reads the saved session on load and listens for sign-in, sign-out and token refresh, so sessions survive a page refresh.
 - `src/components/ProtectedRoute.jsx` sends signed-out users to `/login`, and back to the page they wanted after logging in. Wrap any new private page in it.
 - `src/components/GuestRoute.jsx` sends signed-in users away from `/login` and `/register`.
-- `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route.
+- `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route. It checks the fields before sending (both filled in, an email that looks like one, and at least 8 characters to register), shows each problem under its field, and turns Supabase's errors into plain messages with `authErrorMessage` (`src/auth/authErrors.js`), so Supabase's own text never reaches the screen.
 - `src/auth/token.js` exports `getAuthToken()`, which returns the current Supabase access token. It is `async`, so always `await` it.
 - `src/api/client.js` (`apiRequest`) adds the token to every API request automatically, and `src/api/url.js` builds its URL from `VITE_API_URL`. Use it for all API calls rather than calling `fetch` directly.
 - When a call fails with `err.kind === 'unauthorized'` (the API returned 401), show `<SessionEndedMessage />` from `src/components`. It says "Your session has ended. Sign in again.", and its link signs the user out and opens `/login`, which brings them back to the same page after logging in.
@@ -79,48 +81,53 @@ Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only
 
 Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 
-`src/components/AppHeader.jsx` is the bar at the top of every page: a **Skip to main content** link, the app name, the main navigation (Transactions, Summary, Budgets, with `aria-current="page"` on the current one) and, apart from the links, the logged-in email and **Log out**. Signed-out visitors only see the app name. On a narrow phone the links move to their own row. Every page's `<main>` has `id="main"` for the skip link.
+`src/components/AppShell.jsx` is the frame around every signed-in page: a **Skip to main content** link; from 1024px wide, a fixed sidebar with the logo, the main navigation (Transactions, Summary, Budgets, with icons and `aria-current="page"` on the current one) and, at the bottom, the logged-in email and **Log out**; below 1024px, a top bar with the logo and **Open menu**, which opens the same navigation and account in a sheet. The page renders into the shell's `<main id="main">`, the skip link's target. The login and register pages have no app chrome, just a centred card. `src/components/Logo.jsx` is the logo (a wordmark for now) used in the sidebar, the top bar and the sign-in card.
 
 ## Transactions page
-`/transactions` has the Add expense / Add income form at the top and **Transaction history** below it.
+`/transactions` has a header with **Add transaction**, a toolbar with search and filters, and **Transaction history**: a table on wide screens and stacked rows on phones.
 
-- **List:** 20 transactions per page, newest first, as `GET /api/transactions` returns them. Each row shows the date, type, category, description and amount. The category is a coloured label that always shows its name. Income is green with a `+` and the word Income; expenses have a `−` and the word Expense.
-- **States:** a loading message; "You haven't added any transactions yet." with **Add your first transaction**, which moves focus to the form's Amount field; "No transactions match your search and filters." with **Clear all filters**; an error with **Try again**; and **Sign in again** if the session has ended. A line above the list says which transactions are showing, e.g. "Showing 21 to 40 of 57 transactions."
-- **Paging:** **Previous** and **Next** below the list, with "Page 2 of 3". Focus moves to the Transaction history heading when the page changes. Hidden when everything fits on one page.
+- **List:** 20 transactions per page, newest first, as `GET /api/transactions` returns them, in a table with Date, Description, Category, Amount and a ⋯ menu. The category is a coloured pill that always shows its name. Amounts are right-aligned with tabular figures; income is green with a `+`, expenses have a `−`, and the word Income or Expense sits under each amount. On phones (under 768px) each row is two lines: description and amount, then date and category. The table keeps its table roles on phones too.
+- **States:** placeholder rows while the first page loads (with "Loading transactions…" for screen readers); "You haven't added any transactions yet." with **Add your first transaction**, which opens the add drawer; "No transactions match your search and filters." with **Clear all filters**; an error with **Try again**; and **Sign in again** if the session has ended. While another page or filter loads, the rows on screen stay, dimmed. Under the table, "Showing 21 to 40 of 57 transactions."
+- **Paging:** **Previous** and **Next** under the table, with "Page 2 of 3". Focus moves to the Transaction history heading when the page changes. Hidden when everything fits on one page.
 - **Search:** finds transactions whose description contains the text, in any case. It runs 300 ms after typing stops, or straight away on Enter.
-- **Filters:** category chips (choose any number) and **From** / **To** dates (both inclusive). A To date before the From date is explained next to the field, and the list isn't loaded until it's fixed. Search and filters all work together, and **Clear all** resets them and the page.
+- **Filters:** **Category** opens a list of checkboxes (choose any number); its button says "All categories", the one chosen, or "2 categories". **Date** opens presets: All time, This month (the 1st to the last day), Last month, Last 90 days (today and the 89 days before) and Custom (**From** and **To**, both inclusive). A preset only sets the `from` and `to` URL params; one in the URL shows as that preset. A To date before the From date is explained under To, and the list isn't loaded until it's fixed. Search and filters all work together, and **Clear filters** resets them and the page. On phones, Category and Date move into a **Filters** sheet (its button says how many are on), which applies them as they change.
 - **URL:** the search, filters and page are kept in the URL (e.g. `/transactions?q=lunch&category=Food&page=2`), so refreshing, **Back** and shared links keep them. Anything invalid in the URL is ignored. Changing a search or filter goes back to page 1.
 - **After a change:** adding, editing or deleting a transaction loads the current page again, so it always matches the API (an edited row updates in place straight away, and a deleted one disappears straight away, while that happens). If a delete empties the last page, the list steps back a page.
-- **Edit:** opens a dialog with the same form, filled in with the saved values. Amount, date, description and (for expenses) category can change; the type can't. **Save changes** sends `PUT /api/transactions/:id`. **Cancel** or **Escape** closes without saving.
+- **Add:** **Add transaction** opens a drawer from the right (a bottom sheet on phones) on the Amount field, with an **Expense** / **Income** switch. The expense form has a category; the income form doesn't. Changing type keeps what's typed. The existing checks run on **Save**, with each error under its field. After a save the drawer closes, "Expense of $12.50 saved." shows above the table, focus goes back to **Add transaction**, and the list loads again.
+- **Row actions:** each row's ⋯ button is named for the transaction ("Actions for Lunch, $12.50, Oct 5, 2026") and opens a menu with **Edit** and **Delete**. The arrow keys, Home and End move through it, Escape closes it, and focus returns to ⋯.
+- **Edit:** opens the same form in a drawer, filled in with the saved values. Amount, date, description and (for expenses) category can change; the type can't. **Save changes** sends `PUT /api/transactions/:id`. **Cancel**, **Close** or **Escape** closes without saving.
 - **Delete:** opens a dialog showing the amount, date and description, with **Cancel** focused. **Delete** sends `DELETE /api/transactions/:id` and shows "Transaction deleted."
 - If a transaction was already deleted (for example in another tab), editing or deleting it removes it from the list and says so. Any other failure leaves the data as it was and shows a plain-language message.
-- The dialogs work by keyboard: focus moves into the dialog, Tab stays inside it, Escape closes it (except while a request is running), and focus returns to the button that opened it. Buttons are disabled while their request runs, so nothing is sent twice.
+- Drawers and dialogs work by keyboard: focus moves into them, Tab stays inside, Escape closes them (except while a request is running), and focus returns to the button that opened them. Buttons are disabled while their request runs, so nothing is sent twice.
 
 | File | Job |
 | --- | --- |
-| `src/pages/TransactionsPage.jsx` | Puts the form and the history on the page, and keeps the list's search, filters and page in the URL |
+| `src/pages/TransactionsPage.jsx` | The header and add drawer, the status message, and the list's search, filters and page in the URL |
 | `src/transactions/listQuery.js` | Reads and writes the search, filters and page in the URL |
 | `src/transactions/useTransactions.js` | Loads one page for the current query, and again after adds, edits and deletes |
 | `src/transactions/transactionList.js` | Pure helpers that patch the rows on screen while the page reloads |
-| `src/transactions/TransactionHistory.jsx` | The history section, its states, and which dialog is open |
-| `src/transactions/TransactionFilters.jsx` | The search box, category chips, date range and Clear all |
+| `src/transactions/TransactionHistory.jsx` | The history section, its states, and which drawer or dialog is open |
+| `src/transactions/TransactionTable.jsx` | The table, its placeholder rows, and its phone layout |
+| `src/transactions/TransactionRow.jsx` | One row and its ⋯ menu |
+| `src/transactions/TransactionFilters.jsx` | The toolbar: search, the Category and Date popovers, Clear filters, and the Filters sheet on phones |
+| `src/transactions/CategoryOptions.jsx`, `DateRangeOptions.jsx` | The category checkboxes and date presets, shared by the popovers and the sheet |
+| `src/transactions/datePresets.js` | What This month, Last month and Last 90 days mean as From and To dates |
 | `src/transactions/Pagination.jsx` | Previous, Next and "Page 2 of 3" |
-| `src/transactions/CategoryLabel.jsx` | A category's coloured label |
-| `src/transactions/TransactionListItem.jsx` | One row |
-| `src/transactions/EditTransactionDialog.jsx` | `TransactionForm` in edit mode inside a `Dialog` |
+| `src/transactions/CategoryLabel.jsx` | A category's coloured pill |
+| `src/transactions/AddTransactionDrawer.jsx` | `TransactionForm` with the type switch, in a drawer |
+| `src/transactions/EditTransactionDialog.jsx` | `TransactionForm` in edit mode, in a drawer |
 | `src/transactions/DeleteTransactionDialog.jsx` | The delete confirmation |
-| `src/components/Dialog.jsx` | The accessible modal both dialogs use |
 | `src/transactions/money.js` | Dollars to cents and back, and display formatting, with whole-number maths only |
 | `src/transactions/constants.js` | Categories and their label colours, page size, search limits and form rules. Mirrors the API's `src/constants.js`. |
 
 Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for light and dark mode. `constants.test.js` checks every text and background pair is at least 4.5:1.
 
 ## Summary page
-`/summary` shows one month's **Total income**, **Total expenses** and **Net balance** from `GET /api/summary`, as three cards with amounts from `formatCents`.
+`/summary` shows one month's **Total income**, **Total expenses** and **Net balance** from `GET /api/summary`, as three stat cards with amounts from `formatCents`. The month switcher sits in the page header.
 
 - **Month:** starts on the user's current month (in their own time zone). **Previous** and **Next** step a month at a time, across years too, and the month's name (e.g. "October 2026") is announced when it changes. **This month** jumps back. The month is in the URL (`/summary?month=2026-09`), so refresh and **Back** keep it; an invalid month in the URL shows the current month. January 1900 is the earliest.
 - **Net balance:** a surplus is green with the word **Surplus**; a deficit is red, with a minus sign and the word **Deficit**; equal income and expenses say **Even**. Colour is never the only signal.
-- **States:** "Loading summary…", an error with **Try again** (or **Sign in again** if the session has ended), "No transactions in August 2026." with a link to add one, and the cards. While another month loads, the last one stays on screen, dimmed.
+- **States:** placeholder cards while the first month loads (with "Loading summary…" for screen readers), an error with **Try again** (or **Sign in again** if the session has ended), "No transactions in August 2026." with a link to add one under the $0.00 cards, and the cards. While another month loads, the last one stays on screen, dimmed.
 
 ## Budgets page
 `/budgets` has a row for every category (`BUDGET_CATEGORIES`), each with its monthly limit or "No limit set".
@@ -130,7 +137,7 @@ Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for
 - **Duplicates:** if a limit for that category was added somewhere else meanwhile, the API's 409 message shows ("You already have a budget for Food. Change that one instead.") and the list loads again, so the next **Save limit** changes that one.
 - **Remove** asks first, in a dialog with **Cancel** focused. **Remove limit** sends `DELETE /api/budgets/:id`.
 - **Feedback:** each row says what happened ("Food limit saved: $500.00 a month.", "Food limit removed.") until the next change. Nothing disappears on a timer. A limit that was removed somewhere else is taken off the row with a message.
-- **States:** "Loading budgets…", an error with **Try again** (or **Sign in again**), and a note when no limits are set yet.
+- **States:** a placeholder row per category while loading (with "Loading budgets…" for screen readers), an error with **Try again** (or **Sign in again**), and a note when no limits are set yet.
 
 | File | Job |
 | --- | --- |
@@ -159,16 +166,50 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 - `src/test/setup.js` runs first in every file. It adds the jest-dom matchers (`toBeInTheDocument`, `toHaveFocus`, ...), replaces `src/lib/supabase.js` with `src/test/fakeSupabase.js` (signed in by default; `resetFakeSupabase({ session: null })` signs out), and cleans up after each test.
 - Tests that render pages mock the API modules (`vi.mock('../api/transactions')`, `'../api/summary'`, `'../api/budgets'`) and set what each function returns. Reset the mocks in `beforeEach`: `restoreMocks` doesn't clear queued `mockResolvedValueOnce` values. Summary tests fix the clock with `vi.useFakeTimers({ toFake: ['Date'] })`, so only dates are faked. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
 - `renderApp(path)` from `src/test/renderApp.jsx` renders the whole app (routes and `AuthProvider`) at a path, so tests use the page the way a user does. `currentPath()` and `currentSearch()` say where the app is now. Pages are lazy-loaded, so use `findBy...` for the first thing on a page; `setup.js` gives those waits up to 5 seconds.
+- Every UI primitive has its own test next to it in `src/components/ui` (what it renders, its accessible name, and its keyboard behaviour), and `src/pages/AuthPage.test.jsx` covers login and register.
+- Focus that moves in an effect (after a dialog closes, after a save) and reloads started in an effect can land in a later task than the change that caused them, so assert them inside `waitFor`.
 - `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
 
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
 
 ## Adding a protected page
-1. Create the page in `src/pages`, with `<main id="main" className="page">` (the skip link's target and the shared layout in `index.css`).
-2. Add a lazy route in `App.jsx`, wrapped in `<ProtectedRoute>`, and a link in `AppHeader.jsx` if it belongs in the main navigation.
+1. Create the page in `src/pages`. Wrap it in `<div className="page">` (the shared layout in `index.css`) and start it with `<PageHeader title="..." />`; the app shell already provides `<main id="main">`.
+2. Add a lazy route in `App.jsx` inside the layout route that renders `<AppShell />`, and add it to `LINKS` in `AppShell.jsx` (with a lucide icon) if it belongs in the main navigation.
 3. Call the API with `apiRequest` from `src/api/client.js`.
 4. Get the current user with `useAuth()` if the page needs it.
+
+## UI system
+The look is set by tokens in `src/index.css`, and pages are built from the primitives in `src/components/ui`. Component stylesheets use the tokens only: no raw colours, font sizes, spacing, radii, shadows or durations. Inline styles are used only to pass dynamic values as CSS variables (category colours).
+
+- **Colour:** neutral surfaces (`--bg`, `--surface`, `--surface-2`, `--surface-3`), `--border`, `--border-field` (control edges, 3:1 or more), `--text` and `--text-muted` (4.5:1 or more on every surface, in both modes), one accent (`--accent` Cobalt, `--accent-text`, `--accent-tint`, `--ring`), and `--positive` / `--negative` for money and status only. Dark mode follows the operating system.
+- **Type:** Inter at 12, 14, 16, 20, 24 and 32px (`--text-xs` to `--text-2xl`, each with its `--leading-*`), weights 400, 500 and 600. Add the `tabular` class to anything with figures.
+- **Space and shape:** `--space-1` to `--space-9` (4, 8, 12, 16, 24, 32, 40, 48, 64px); radii 4, 6, 10 and 14px plus pills; shadows only on floating layers (`--shadow-popover`, `--shadow-overlay`).
+- **Motion:** 150ms (`--duration-fast`) for hover and menus, 200ms (`--duration-base`) for drawers and sheets, ease-out, transform and opacity only; all of it is off with `prefers-reduced-motion`.
+- **Touch and focus:** controls are at least 44px tall (`--control-h`); compact ones look 36px and keep a 44px hit area. Every control shows a 2px focus ring.
+- **Breakpoints:** 768px (table rows, drawer or sheet, toolbar) and 1024px (sidebar or top bar). Tested at 375, 768, 1024 and 1440px.
+
+| Primitive | Props |
+| --- | --- |
+| `Button` | `variant` (primary, secondary, ghost, danger), `size` (md, sm), `icon`, `fullWidth`, plus any button attribute |
+| `IconButton` | `icon`, `label` (its accessible name), `variant` (ghost, secondary) |
+| `Field` | `id`, `label`, `hint`, `error`, `optional`, and a render function that gets the control's id and aria props |
+| `Input` | `icon` (inside the start), `trailing` (inside the end), plus any input attribute |
+| `Select` | Any select attribute; a native select with a chevron |
+| `Checkbox` | `label`, `swatch` ({ light, dark }), plus any checkbox attribute |
+| `SegmentedControl` | `name`, `legend`, `value`, `options` ([{ value, label }]), `onChange`, `disabled`: a radio group |
+| `Menu` | `label`, `icon`, `items` ([{ label, onSelect(trigger), tone }]): a WAI-ARIA menu button |
+| `Popover` | `label`, `buttonContent`, `align`, `children`: a non-modal panel under a button |
+| `Dialog` | `title`, `onClose`, `variant` (dialog, drawer, sheet, nav), `canClose`, `initialFocusRef`, `returnFocusRef`, `fallbackFocusRef` |
+| `Card` | `as`, `padded` |
+| `Pill` | `colors` ({ light, dark } text and background) |
+| `Alert` | `tone` (error, success), `role` |
+| `Skeleton` | `shape` (text, short, amount, pill, figure) |
+| `EmptyState` | `icon`, `title`, `action`, and detail as children |
+| `PageHeader` | `title`, `subtitle`, `actions` |
+| `Toolbar` | `as`, plus any attribute (e.g. `role="search"`) |
+
+Every `Dialog` variant shares one focus trap, `useModalLayer` (`src/components/ui/useModalLayer.js`): the page behind is inert, Tab stays inside, Escape closes, and focus returns to the opener. Don't write another. Menus and popovers return focus to their button on Escape. Data loading stays in the hooks and `src/api` modules; primitives never fetch.
 
 ## Deployment
 The front-end runs on **Vercel**, set up by `vercel.json` in this repo. The API runs on Render; see the Deployment section in [Finora-API](https://github.com/Finora-Finance-CA/Finora-API#deployment), which also covers Supabase. Vercel builds the static site from GitHub, so there's nothing to run on your machine.

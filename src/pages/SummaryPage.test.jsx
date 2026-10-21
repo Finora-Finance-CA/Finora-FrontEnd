@@ -144,6 +144,10 @@ describe('summary cards (US-29)', () => {
     renderApp('/summary')
 
     expect(await screen.findByText('Loading summary…')).toBeInTheDocument()
+    // Three placeholder cards hold the layout; screen readers skip them.
+    const placeholders = document.querySelector('.summary-cards[aria-hidden="true"]')
+    expect(placeholders.querySelectorAll('.summary-card')).toHaveLength(3)
+    expect(screen.queryByText('Total income')).not.toBeInTheDocument()
   })
 
   it('shows total income, total expenses and net balance as dollars', async () => {

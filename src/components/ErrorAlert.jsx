@@ -1,5 +1,5 @@
+import Alert from './ui/Alert'
 import SessionEndedMessage from './SessionEndedMessage'
-import './ErrorAlert.css'
 
 const FALLBACK_MESSAGE = 'Something went wrong. Please try again.'
 
@@ -15,16 +15,16 @@ const FALLBACK_MESSAGE = 'Something went wrong. Please try again.'
 export default function ErrorAlert({ error, context }) {
   if (error?.kind === 'unauthorized') {
     return (
-      <div className="error-alert" role="alert">
+      <Alert>
         <SessionEndedMessage />
-      </div>
+      </Alert>
     )
   }
 
   const message = error?.kind ? error.message : FALLBACK_MESSAGE
   return (
-    <div className="error-alert" role="alert">
+    <Alert>
       <p>{context ? `${context} ${message}` : message}</p>
-    </div>
+    </Alert>
   )
 }
