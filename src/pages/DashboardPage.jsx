@@ -10,6 +10,7 @@ import SummaryCards, { SummaryCardsSkeleton } from '../summary/SummaryCards'
 import { useMonthlySummary } from '../summary/useMonthlySummary'
 import { useMonthParam } from '../summary/useMonthParam'
 import './DashboardPage.css'
+import BudgetAlertsPanel from '../dashboard/BudgetAlertsPanel'
 
 /**
  * /dashboard (US-42): the key numbers for one month in one place. The month is in the
@@ -34,10 +35,8 @@ export default function DashboardPage() {
         </section>
 
         <section className="dashboard__panel" aria-labelledby="dashboard-alerts">
-          <h2 id="dashboard-alerts" className="dashboard__heading">Budget alerts</h2>
-          <Card>
-            <p className="dashboard__placeholder">Coming soon (US-41).</p>
-          </Card>
+        <h2 id="dashboard-alerts" className="dashboard__heading">Budget alerts</h2>
+        <BudgetAlertsPanel month={month} />
         </section>
 
         <section className="dashboard__panel" aria-labelledby="dashboard-categories">
