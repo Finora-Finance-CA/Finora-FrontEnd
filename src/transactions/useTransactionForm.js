@@ -3,6 +3,7 @@
 
 import { useRef, useState } from 'react'
 import { createTransaction, updateTransaction } from '../api/transactions'
+import { useTransactionsSync } from '../context/useTransactionsSync'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
 import { TRANSACTION_TYPES } from './constants'
 import { todayLocal } from './dates'
@@ -29,6 +30,9 @@ function valuesFrom(transaction) {
  *   fields, labels and rules come from TRANSACTION_TYPES[type].
  * @param {object} [options.transaction] The saved transaction to edit. The form starts
  *   with its values and saving replaces it (PUT). Without it, saving adds a new one.
+ * @param {{ amount?: string, date?: string, category?: string, description?: string }} [options.initialValues]
+ *   When adding, values to start with instead of the empty ones, e.g. { category: 'Food' }.
+ *   Ignored when editing.
  * @param {(transaction: object, message?: string) => void} [options.onSaved] Called after a
  *   successful save. After adding, it also gets a message to show, e.g. "Expense of $12.50 saved.".
  * @param {() => void} [options.onNotFound] Called, instead of showing an error, when
@@ -38,9 +42,20 @@ function valuesFrom(transaction) {
  * @param {{ current: HTMLElement|null }} [options.firstFieldRef] Set to the form's first
  *   input (Amount), so the page can move focus there.
  */
-export function useTransactionForm({ type, transaction, onSaved, onNotFound, onSubmittingChange, firstFieldRef }) {
+export function useTransactionForm({
+  type,
+  transaction,
+  initialValues,
+  onSaved,
+  onNotFound,
+  onSubmittingChange,
+  firstFieldRef,
+}) {
   const { label, fields } = TRANSACTION_TYPES[type]
-  const [values, setValues] = useState(() => (transaction ? valuesFrom(transaction) : emptyValues()))
+  const { notifyTransactionsChanged } = useTransactionsSync()
+  const [values, setValues] = useState(() =>
+    transaction ? valuesFrom(transaction) : { ...emptyValues(), ...initialValues }
+  )
   const [errors, setErrors] = useState({})
   // A problem that isn't about one field: { kind, message }.
   const [formError, setFormError] = useState(null)
@@ -116,6 +131,9 @@ export function useTransactionForm({ type, transaction, onSaved, onNotFound, onS
     }
 
     submittingRef.current = false
+    // Budgets and the summary load again (US-38), even if this form has closed meanwhile:
+    // the transaction was saved. A 404 on edit is reported by the page (handleGone).
+    if (!failure) notifyTransactionsChanged()
     // The form may have closed while the request was out (e.g. the user signed out).
     if (!isMountedRef.current) return
     setIsSubmitting(false)

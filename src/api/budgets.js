@@ -51,6 +51,35 @@ export async function updateBudget(id, payload) {
 }
 
 /**
+ * How much has been spent against one budget in a month, as GET /api/budgets/status
+ * returns it (US-35). `status` is "under" (below 80%), "warning" (80% up to and
+ * including 100%) or "over" (above the limit). One cent over is "over" while
+ * percent_used is still 100, so use `status` to tell full from over.
+ *
+ * @typedef {object} BudgetStatus
+ * @property {string} id The budget's id.
+ * @property {string} category
+ * @property {number} limit_cents
+ * @property {number} spent_cents
+ * @property {number} remaining_cents Negative when over the limit.
+ * @property {number} percent_used Rounded down; can be more than 100.
+ * @property {'under'|'warning'|'over'} status
+ */
+
+/**
+ * Spending against each of the signed-in user's budgets in one month, in category
+ * order. Limits aren't kept per month, so every month uses the current limits.
+ *
+ * @param {string} month YYYY-MM, in the user's own calendar.
+ * @returns {Promise<{ month: string, budgets: BudgetStatus[] }>}
+ * @throws {import('./client').ApiError}
+ */
+export async function getBudgetStatus(month) {
+  const data = await apiRequest(`/api/budgets/status?month=${encodeURIComponent(month)}`)
+  return { month: data?.month ?? month, budgets: data?.budgets ?? [] }
+}
+
+/**
  * Deletes a budget.
  *
  * @param {string} id

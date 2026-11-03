@@ -1,7 +1,7 @@
 // The Summary page (US-28, US-29) as a user sees it. The API module is mocked, and the
 // clock is fixed at October 20th 2026, so "this month" is October 2026.
 
-import { act, fireEvent, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import { getMonthlySummary } from '../api/summary'
@@ -225,5 +225,20 @@ describe('summary cards (US-29)', () => {
 
     expect(await screen.findByRole('link', { name: 'Sign in again.' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+})
+
+describe('staying current (US-38)', () => {
+  it('loads the summary again when the tab is shown again, keeping the cards on screen', async () => {
+    await showSummary()
+    expect(getMonthlySummary).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    await waitFor(() => expect(getMonthlySummary).toHaveBeenCalledTimes(2))
+    expect(getMonthlySummary).toHaveBeenLastCalledWith('2026-10')
+    expect(card('Total income')).toHaveTextContent('$2,450.00')
   })
 })

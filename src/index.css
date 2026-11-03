@@ -27,11 +27,15 @@
   --accent-tint: #eef1fd;
   --ring: #3451d1;
 
-  /* Green and red are kept for money and status only. */
+  /* Green, amber and red are kept for money and status only. */
   --positive: #067647;
   --positive-bg: #ecfdf3;
   --negative: #b42318;
   --negative-bg: #fef3f2;
+  /* Close to a limit (US-39). 5.2:1 or more on every light surface and on --warning-bg,
+     and 4.5:1 against a progress bar's track. */
+  --warning: #b54708;
+  --warning-bg: #fffaeb;
   --danger: #b42318;
   --danger-hover: #912018;
   --on-danger: #ffffff;
@@ -141,6 +145,8 @@
     --positive-bg: #10261a;
     --negative: #f97066;
     --negative-bg: #2a1514;
+    --warning: #fdb022;
+    --warning-bg: #2a1f0a;
 
     --scrim: rgb(0 0 0 / 0.6);
     --shadow-popover: 0 4px 16px rgb(0 0 0 / 0.4);

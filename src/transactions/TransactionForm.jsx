@@ -29,6 +29,7 @@ const TYPE_OPTIONS = Object.entries(TRANSACTION_TYPES).map(([value, { label }]) 
  * @param {(type: 'income'|'expense') => void} [props.onTypeChange]
  * @param {(transaction: object, message?: string) => void} [props.onSaved] See useTransactionForm.
  * @param {object} [props.transaction] The saved transaction to edit.
+ * @param {object} [props.initialValues] See useTransactionForm.
  * @param {() => void} props.onCancel
  * @param {() => void} [props.onNotFound] See useTransactionForm.
  * @param {(isSubmitting: boolean) => void} [props.onSubmittingChange] See useTransactionForm.
@@ -39,6 +40,7 @@ export default function TransactionForm({
   onTypeChange,
   onSaved,
   transaction,
+  initialValues,
   onCancel,
   onNotFound,
   onSubmittingChange,
@@ -49,6 +51,7 @@ export default function TransactionForm({
   const { values, errors, formError, isSubmitting, fieldProps, handleSubmit } = useTransactionForm({
     type,
     transaction,
+    initialValues,
     onSaved,
     onNotFound,
     onSubmittingChange,

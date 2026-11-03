@@ -2,7 +2,7 @@
 // Supabase session are fake.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createBudget, deleteBudget, listBudgets, updateBudget } from './budgets'
+import { createBudget, deleteBudget, getBudgetStatus, listBudgets, updateBudget } from './budgets'
 import { getMonthlySummary } from './summary'
 
 function respondWith(status, body) {
@@ -71,5 +71,27 @@ describe('summary API', () => {
 
     await expect(getMonthlySummary('2026-10')).resolves.toEqual(summary)
     expect(fetch.mock.calls[0][0]).toBe('/api/summary?month=2026-10')
+  })
+})
+
+describe('budget status API (US-35)', () => {
+  it('gets the status for a month', async () => {
+    const body = { month: '2026-10', budgets: [{ ...BUDGET, spent_cents: 40487, remaining_cents: 9513, percent_used: 80, status: 'warning' }] }
+    const fetch = respondWith(200, body)
+
+    await expect(getBudgetStatus('2026-10')).resolves.toEqual(body)
+    expect(fetch.mock.calls[0][0]).toBe('/api/budgets/status?month=2026-10')
+  })
+
+  it('gives an empty list when the response has no budgets', async () => {
+    respondWith(200, {})
+
+    await expect(getBudgetStatus('2026-10')).resolves.toEqual({ month: '2026-10', budgets: [] })
+  })
+
+  it('throws a validation ApiError for a bad month', async () => {
+    respondWith(400, { errors: { month: 'month must be a real month in YYYY-MM format, e.g. 2026-10.' } })
+
+    await expect(getBudgetStatus('2026-13')).rejects.toMatchObject({ kind: 'validation' })
   })
 })

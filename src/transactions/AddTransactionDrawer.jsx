@@ -14,8 +14,10 @@ import TransactionForm from './TransactionForm'
  * @param {(transaction: object, message: string) => void} props.onSaved
  * @param {() => void} props.onClose
  * @param {{ current: HTMLElement|null }} [props.returnFocusRef] See Dialog.
+ * @param {object} [props.initialValues] Values to start with, e.g. { category: 'Food' }
+ *   from a budget row. See useTransactionForm.
  */
-export default function AddTransactionDrawer({ onSaved, onClose, returnFocusRef }) {
+export default function AddTransactionDrawer({ onSaved, onClose, returnFocusRef, initialValues }) {
   // Expense or income. Expense comes first because it's the more common entry.
   const [type, setType] = useState('expense')
   const [isSaving, setIsSaving] = useState(false)
@@ -33,6 +35,7 @@ export default function AddTransactionDrawer({ onSaved, onClose, returnFocusRef 
       <TransactionForm
         type={type}
         onTypeChange={setType}
+        initialValues={initialValues}
         onSaved={onSaved}
         onCancel={onClose}
         onSubmittingChange={setIsSaving}
