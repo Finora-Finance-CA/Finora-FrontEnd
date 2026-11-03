@@ -9,6 +9,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     'summary actions'
+    'progress progress'
     'form form'
     'message message';
   align-items: center;
@@ -25,6 +26,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'summary'
+      'progress'
       'actions'
       'form'
       'message';
@@ -56,6 +58,30 @@
 .budget-row__limit--none {
   font-weight: var(--weight-regular);
   color: var(--text-muted);
+}
+
+/* Spent so far this month (US-36, US-37), across the full width of the row. */
+.budget-row__progress {
+  grid-area: progress;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.budget-row__figures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--text-muted);
+}
+
+.budget-row__remaining {
+  font-weight: var(--weight-medium);
+  color: var(--text);
 }
 
 .budget-row__actions {

@@ -4,6 +4,7 @@ import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import { useTransactionsSync } from '../context/useTransactionsSync'
 import DeleteTransactionDialog from './DeleteTransactionDialog'
 import EditTransactionDialog from './EditTransactionDialog'
 import Pagination from './Pagination'
@@ -51,6 +52,8 @@ export default function TransactionHistory({
   const headingRef = useRef(null)
   const searchRef = useRef(null)
   const headingId = useId()
+  // Saves notify from useTransactionForm; deletes are reported here (US-38).
+  const { notifyTransactionsChanged } = useTransactionsSync()
 
   function openDialog(open, transaction, opener) {
     openerRef.current = opener
@@ -65,12 +68,15 @@ export default function TransactionHistory({
   }
 
   function handleDeleted(transaction) {
+    notifyTransactionsChanged()
     list.showRemoved(transaction.id)
     setDeleting(null)
     onMessage(MESSAGES.deleted)
   }
 
+  // Deleted somewhere else, so budgets and the summary may be out of date too.
   function handleGone(transaction, text) {
+    notifyTransactionsChanged()
     list.showRemoved(transaction.id)
     setEditing(null)
     setDeleting(null)

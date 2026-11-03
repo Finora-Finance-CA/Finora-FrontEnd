@@ -1,15 +1,15 @@
 import { CalendarX, CircleAlert } from 'lucide-react'
-import { useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link } from 'react-router'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import PageHeader from '../components/ui/PageHeader'
 import MonthSelector from '../summary/MonthSelector'
-import { currentMonth, formatMonth, isValidMonth } from '../summary/months'
+import { formatMonth } from '../summary/months'
 import SummaryCards, { SummaryCardsSkeleton } from '../summary/SummaryCards'
 import { useMonthlySummary } from '../summary/useMonthlySummary'
+import { useMonthParam } from '../summary/useMonthParam'
 import '../components/ui/Button.css'
 import './SummaryPage.css'
 
@@ -19,16 +19,8 @@ import './SummaryPage.css'
  * with an invalid one, it's the user's current month.
  */
 export default function SummaryPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const thisMonth = currentMonth()
-  const requested = searchParams.get('month')
-  const month = isValidMonth(requested) ? requested : thisMonth
+  const { month, thisMonth, showMonth } = useMonthParam()
   const summary = useMonthlySummary(month)
-
-  const showMonth = useCallback(
-    (next) => setSearchParams(next === thisMonth ? {} : { month: next }),
-    [setSearchParams, thisMonth]
-  )
 
   return (
     <div className="page">

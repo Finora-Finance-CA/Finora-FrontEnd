@@ -3,7 +3,7 @@
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { listBudgets } from '../api/budgets'
+import { getBudgetStatus, listBudgets } from '../api/budgets'
 import { getMonthlySummary } from '../api/summary'
 import { listTransactions } from '../api/transactions'
 import { resetFakeSupabase } from '../test/fakeSupabase'
@@ -28,6 +28,7 @@ beforeEach(() => {
     transaction_count: 0,
   }))
   listBudgets.mockResolvedValue([])
+  getBudgetStatus.mockImplementation(async (month) => ({ month, budgets: [] }))
 })
 
 describe('AppShell', () => {
