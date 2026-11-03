@@ -37,7 +37,7 @@ describe('AppShell', () => {
     await screen.findByRole('heading', { name: 'Transactions', level: 1 })
 
     const links = within(mainNav()).getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['Transactions', 'Summary', 'Budgets'])
+    expect(links.map((link) => link.textContent)).toEqual(['Dashboard', 'Transactions', 'Summary', 'Budgets'])
     expect(within(mainNav()).getByRole('link', { name: 'Transactions' })).toHaveAttribute('aria-current', 'page')
     expect(within(mainNav()).getByRole('link', { name: 'Summary' })).not.toHaveAttribute('aria-current')
   })
