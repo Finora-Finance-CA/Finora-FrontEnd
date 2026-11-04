@@ -173,6 +173,49 @@ Figures built from transactions load again by themselves (US-38):
 
 A 409 from the API becomes an `ApiError` with `kind: 'conflict'` and the API's own message (it's written for people), or "That already exists." if it has none.
 
+## Savings goals
+
+Signed-in users can open **Savings goals** from the navigation menu
+or visit `/goals`.
+
+### Create, edit and delete goals
+- Create a goal with a name, target amount in CAD and optional target date.
+- Edit a goal and confirm with **Save changes**.
+- Delete a goal after confirming in the deletion dialog.
+- Invalid targets, including zero and negative amounts, are rejected.
+
+### Contributions
+- Click **Add contribution** on a goal to record money saved.
+- Contributions increase the goal's saved total.
+- Zero, negative and invalid contribution amounts are rejected.
+- Amounts are converted to integer cents before being sent to the API.
+
+### Progress
+- Each goal displays its saved amount, target amount and percentage complete.
+- Progress updates after a contribution is saved.
+- The progress bar fills up to 100%; the percentage can exceed 100%
+  when savings exceed the target.
+
+### API
+All requests require authentication. Users can only access their own goals.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/goals` | List goals |
+| POST | `/api/goals` | Create a goal |
+| PUT | `/api/goals/:id` | Update a goal |
+| DELETE | `/api/goals/:id` | Delete a goal |
+| POST | `/api/goals/:id/contributions` | Add to the saved total |
+
+### Main files
+| File | Purpose |
+| --- | --- |
+| `src/pages/GoalsPage.jsx` | Goal cards, create/edit forms, deletion confirmation and progress |
+| `src/pages/GoalsPage.css` | Goal page styles |
+| `src/pages/ContributionDialog.jsx` | Contribution form |
+| `src/api/goals.js` | Authenticated API calls for goals and contributions |
+| `src/components/ui/ProgressBar.jsx` | Reusable progress bar |
+
 ## Tests
 
 ```bash
