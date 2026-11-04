@@ -55,6 +55,18 @@ const OCTOBER_CATEGORIES = {
   ],
 }
 
+const OCTOBER_TREND = {
+  month: '2026-10',
+  months: [
+    { month: '2026-05', expense_cents: 0 },
+    { month: '2026-06', expense_cents: 50000 },
+    { month: '2026-07', expense_cents: 0 },
+    { month: '2026-08', expense_cents: 125099 },
+    { month: '2026-09', expense_cents: 98000 },
+    { month: '2026-10', expense_cents: 192086 },
+  ],
+}
+
 function card(label) {
   return screen.getByText(label, { selector: 'dt' }).closest('.summary-card')
 }
@@ -66,6 +78,11 @@ function alertsPanel() {
 function categoryPanel() {
   return screen.getByRole('region', { name: 'Spending by category' })
 }
+
+function trendPanel() {
+  return screen.getByRole('region', { name: 'Spending over the last 6 months' })
+}
+
 async function showDashboard(path = '/dashboard') {
   renderApp(path)
   await screen.findByText('Total income')
@@ -277,5 +294,63 @@ describe('spending by category (US-43)', () => {
 
     expect(await within(categoryPanel()).findByRole('table')).toBeInTheDocument()
     expect(getCategorySpending).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('spending over the last 6 months (US-44)', () => {
+  beforeEach(() => {
+    getSpendingTrend.mockImplementation(async (month) => (month === '2026-10' ? OCTOBER_TREND : { month, months: [
+      { month: '2026-04', expense_cents: 0 },
+      { month: '2026-05', expense_cents: 0 },
+      { month: '2026-06', expense_cents: 0 },
+      { month: '2026-07', expense_cents: 0 },
+      { month: '2026-08', expense_cents: 0 },
+      { month: '2026-09', expense_cents: 0 },
+    ] }))
+  })
+
+  it('lists each of the 6 months, oldest first, with what was spent, for screen readers', async () => {
+    await showDashboard()
+
+    const table = await within(trendPanel()).findByRole('table', { name: 'Spending from May 2026 to October 2026' })
+    const rows = within(table).getAllByRole('row').slice(1).map((row) => row.textContent)
+    expect(rows).toEqual([
+      'May 2026$0.00',
+      'June 2026$500.00',
+      'July 2026$0.00',
+      'August 2026$1,250.99',
+      'September 2026$980.00',
+      'October 2026$1,920.86',
+    ])
+  })
+
+  it('loads the 6 months ending at the chosen month', async () => {
+    await showDashboard()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Previous month/ }))
+
+    await waitFor(() => expect(getSpendingTrend).toHaveBeenLastCalledWith('2026-09'))
+  })
+
+  it('says so when there were no expenses in any of the 6 months, with a link to add one', async () => {
+    await showDashboard('/dashboard?month=2026-09')
+
+    expect(await within(trendPanel()).findByText('No expenses in the last 6 months')).toBeInTheDocument()
+    expect(within(trendPanel()).getByRole('link', { name: 'Add an expense' })).toHaveAttribute('href', '/transactions')
+  })
+
+  it('shows an error with Try again, and Try again loads it', async () => {
+    getSpendingTrend.mockRejectedValueOnce(
+      new ApiError('network', "We couldn't reach the server. Check your connection and try again.")
+    )
+    await showDashboard()
+
+    expect(
+      await within(trendPanel()).findByText("We couldn't load your spending over the last 6 months.", { exact: false })
+    ).toBeInTheDocument()
+    fireEvent.click(within(trendPanel()).getByRole('button', { name: 'Try again' }))
+
+    expect(await within(trendPanel()).findByRole('table')).toBeInTheDocument()
+    expect(getSpendingTrend).toHaveBeenCalledTimes(2)
   })
 })
