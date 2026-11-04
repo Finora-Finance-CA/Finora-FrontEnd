@@ -11,6 +11,7 @@ Syed Kazmi, Usayd Jahangiri, Ayaan Sethi
 - Plain CSS, one file per component, using the design tokens in `src/index.css` (light and dark mode); see [UI system](#ui-system)
 - Inter, self-hosted with `@fontsource/inter` (latin subset, weights 400, 500 and 600)
 - `lucide-react` icons, imported one by one
+- Recharts for the dashboard charts (SVG, coloured with the design tokens)
 - Supabase Auth (`@supabase/supabase-js`) for sign-up, login and sessions
 - Vitest and Testing Library for tests
 
@@ -61,6 +62,7 @@ The app runs at http://localhost:5173.
 | --- | --- | --- |
 | `/login` | Signed-out users only | `AuthPage` in login mode |
 | `/register` | Signed-out users only | `AuthPage` in register mode |
+| `/dashboard` | Signed-in users only | `DashboardPage`. Takes `?month=YYYY-MM`, like `/summary`. |
 | `/transactions` | Signed-in users only | `TransactionsPage`. Takes `?q=`, `?category=` (repeatable), `?from=`, `?to=` and `?page=` for the list's search, filters and page. |
 | `/summary` | Signed-in users only | `SummaryPage`. Takes `?month=YYYY-MM`; without it (or with an invalid one) it shows the current month. |
 | `/budgets` | Signed-in users only | `BudgetsPage` |
@@ -81,7 +83,7 @@ Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only
 
 Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 
-`src/components/AppShell.jsx` is the frame around every signed-in page: a **Skip to main content** link; from 1024px wide, a fixed sidebar with the logo, the main navigation (Transactions, Summary, Budgets, with icons and `aria-current="page"` on the current one) and, at the bottom, the logged-in email and **Log out**; below 1024px, a top bar with the logo and **Open menu**, which opens the same navigation and account in a sheet. The page renders into the shell's `<main id="main">`, the skip link's target. The login and register pages have no app chrome, just a centred card. `src/components/Logo.jsx` is the logo (a wordmark for now) used in the sidebar, the top bar and the sign-in card.
+`src/components/AppShell.jsx` is the frame around every signed-in page: a **Skip to main content** link; from 1024px wide, a fixed sidebar with the logo, the main navigation (Dashboard, Transactions, Summary, Budgets, Savings goals, with icons and `aria-current="page"` on the current one) and, at the bottom, the logged-in email and **Log out**; below 1024px, a top bar with the logo and **Open menu**, which opens the same navigation and account in a sheet. The page renders into the shell's `<main id="main">`, the skip link's target. The login and register pages have no app chrome, just a centred card. `src/components/Logo.jsx` is the logo (a wordmark for now) used in the sidebar, the top bar and the sign-in card.
 
 ## Transactions page
 `/transactions` has a header with **Add transaction**, a toolbar with search and filters, and **Transaction history**: a table on wide screens and stacked rows on phones.
@@ -121,6 +123,24 @@ Email confirmation is currently **off** in Supabase, so new accounts are signed 
 | `src/transactions/constants.js` | Categories and their label colours, page size, search limits and form rules. Mirrors the API's `src/constants.js`. |
 
 Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for light and dark mode. `constants.test.js` checks every text and background pair is at least 4.5:1.
+## Dashboard
+`/dashboard` brings one month's key numbers together (US-42). The month switcher sits in the page header, with the month in the URL (`/dashboard?month=2026-11`), and every panel shows that same month.
+
+- **Summary cards:** the same three cards as `/summary` (`SummaryCards`).
+- **Budget alerts** (US-41): every category at 80% or more of its limit, fullest first (by spent ÷ limit, so "over by a cent" sorts above "exactly full"), with the same labels and bar colours as the Budgets page. "All budgets on track" when none qualifies, and "No budgets yet" with a link when there are none. **Manage budgets** opens `/budgets` on the same month.
+- **Spending by category** (US-43): a horizontal bar per expense category from `GET /api/summary/categories`, with each amount on its bar and on hover. "No expenses in …" with **Add an expense** for an empty month.
+- **Spending over the last 6 months** (US-44): a bar per month from `GET /api/summary/trend`, ending at the chosen month, with the year shown on the first bar and on January. "No expenses in the last 6 months" when every month is zero.
+- **Charts and accessibility:** charts are drawn with Recharts and coloured by CSS rules that use the design tokens, so they follow light and dark mode. Each chart is hidden from screen readers and has a visually hidden table with the same figures. Amounts are written on the bars, so nothing depends on hover. Animation is off.
+- **Staying current:** every panel loads with `useMonthData`, so it reloads after a transaction changes and when the tab is shown again (US-38).
+
+| File | Job |
+| --- | --- |
+| `src/pages/DashboardPage.jsx` | The month in the URL, the summary cards, and the layout |
+| `src/dashboard/BudgetAlertsPanel.jsx` | Categories at 80% or more, sorted, with their states |
+| `src/dashboard/CategorySpendingChart.jsx` | The category bar chart and its table |
+| `src/dashboard/SpendingTrendChart.jsx` | The 6-month bar chart and its table |
+| `src/dashboard/useChartData.js` | `useCategorySpending` and `useSpendingTrend`, built on `useMonthData` |
+| `src/budgets/budgetAlerts.js` | Each budget status's tone and label, shared with the Budgets page |
 
 ## Summary page
 `/summary` shows one month's **Total income**, **Total expenses** and **Net balance** from `GET /api/summary`, as three stat cards with amounts from `formatCents`. The month switcher sits in the page header.
@@ -142,7 +162,7 @@ Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for
 - **Remove** asks first, in a dialog with **Cancel** focused. **Remove limit** sends `DELETE /api/budgets/:id`.
 - **Feedback:** each row says what happened ("Food limit saved: $500.00 a month.", "Food limit removed.") until the next change. Nothing disappears on a timer. A limit that was removed somewhere else is taken off the row with a message.
 - **States:** a placeholder row per category while loading (with "Loading budgets…" for screen readers), an error with **Try again** (or **Sign in again**) if the limits or the month's spending don't load, and a note when no limits are set yet. While another month or fresh figures load, the rows stay on screen.
-- **Bar colours:** every bar uses the default tone for now. `ProgressBar` also has `warning` and `danger` tones (`--warning` and `--negative`), which US-39/US-40 map from each row's `status`; see the comment in `BudgetRow.jsx`.
+- **Alerts**: each bar's colour and label come from the API's `status`, through `budgetAlert` (`src/budgets/budgetAlerts.js`): 80% up to and including 100% is amber with **Close to limit**, and more than the limit is red with **Over budget**. The API decides the status (`compareToLimit` in Finora-API); the front-end never recalculates it, so the Budgets page and the dashboard always agree. A budget over by one cent can still read 100%, so always use `status`, not the percent.
 
 ### Keeping figures current
 Figures built from transactions load again by themselves (US-38):
@@ -230,6 +250,7 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 - Every UI primitive has its own test next to it in `src/components/ui` (what it renders, its accessible name, and its keyboard behaviour), and `src/pages/AuthPage.test.jsx` covers login and register.
 - Focus that moves in an effect (after a dialog closes, after a save) and reloads started in an effect can land in a later task than the change that caused them, so assert them inside `waitFor`.
 - `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
+- `setup.js` also gives jsdom a do-nothing `ResizeObserver`, which Recharts needs. Charts don't draw in tests, so dashboard tests check each chart's visually hidden table instead.
 
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
