@@ -13,6 +13,7 @@ const BudgetsPage = lazy(() => import('./pages/BudgetsPage'));
 const SummaryPage = lazy(() => import('./pages/SummaryPage'));
 const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const GoalsPage = lazy(() => import('./pages/GoalsPage'));
 
 function App() {
     return (
@@ -34,6 +35,7 @@ function App() {
                     <Route path="/transactions" element={<TransactionsPage />} />
                     <Route path="/summary" element={<SummaryPage />} />
                     <Route path="/budgets" element={<BudgetsPage />} />
+                    <Route path="/goals" element={<GoalsPage />} />
                 </Route>
             </Routes>
         </Suspense>

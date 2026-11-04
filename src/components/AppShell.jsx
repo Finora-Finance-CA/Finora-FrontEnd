@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ChartPie, LayoutDashboard, LogOut, Menu, Wallet } from 'lucide-react'
+import { ArrowLeftRight, ChartPie, LayoutDashboard, LogOut, Menu, Wallet, Target } from 'lucide-react'
 import { Suspense, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../context/useAuth'
@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/summary', label: 'Summary', icon: ChartPie },
   { to: '/budgets', label: 'Budgets', icon: Wallet },
+  { to: '/goals', label: 'Savings goals', icon: Target },
 ]
 
 /**
