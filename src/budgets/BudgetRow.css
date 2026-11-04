@@ -121,3 +121,22 @@
     background: var(--positive-bg);
   }
 }
+
+/* The status label next to "80% used" (US-39, US-40). Same colours as its bar. */
+.budget-row__alert {
+  margin-right: auto;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.budget-row__alert--warning {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+
+.budget-row__alert--danger {
+  color: var(--negative);
+  background: color-mix(in srgb, var(--negative) 15%, transparent);
+}

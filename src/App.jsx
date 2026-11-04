@@ -12,6 +12,7 @@ const AuthPage = lazy(() => import('./pages/AuthPage'));
 const BudgetsPage = lazy(() => import('./pages/BudgetsPage'));
 const SummaryPage = lazy(() => import('./pages/SummaryPage'));
 const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const GoalsPage = lazy(() => import('./pages/GoalsPage'));
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
                 <Route element={
                     <ProtectedRoute><TransactionsSyncProvider><AppShell /></TransactionsSyncProvider></ProtectedRoute>
                 }>
+                    <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/transactions" element={<TransactionsPage />} />
                     <Route path="/summary" element={<SummaryPage />} />
                     <Route path="/budgets" element={<BudgetsPage />} />

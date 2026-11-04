@@ -87,20 +87,70 @@ describe('spent against each limit (US-36)', () => {
     expect(bar.querySelector('.progress-bar__fill').style.getPropertyValue('--progress')).toBe('1')
   })
 
-  it('uses the default tone on every bar until US-39/US-40 add warning and over colours', async () => {
-    await showBudgets()
-
-    for (const category of ['Food', 'Transportation', 'Housing']) {
-      expect(barFor(category)).toHaveClass('progress-bar--default')
-    }
-  })
-
   it('leaves rows without a limit as they were, with no bar', async () => {
     await showBudgets()
 
     expect(rowFor('Entertainment')).toHaveTextContent('No limit set')
     expect(within(rowFor('Entertainment')).queryByRole('progressbar')).not.toBeInTheDocument()
     expect(within(rowFor('Entertainment')).queryByRole('button', { name: /Add expense/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('budget alerts (US-39, US-40)', () => {
+  it('colours a budget at 80% or more of its limit as a warning, with a label', async () => {
+    await showBudgets()
+
+    expect(barFor('Food')).toHaveClass('progress-bar--warning')
+    expect(rowFor('Food')).toHaveTextContent('Close to limit')
+  })
+
+  it('treats exactly 100% as a warning, not over', async () => {
+    await showBudgets()
+
+    expect(barFor('Housing')).toHaveClass('progress-bar--warning')
+    expect(rowFor('Housing')).toHaveTextContent('Close to limit')
+    expect(rowFor('Housing')).not.toHaveTextContent('Over budget')
+  })
+
+  it('colours a budget above its limit as over, with a label', async () => {
+    await showBudgets()
+
+    expect(barFor('Transportation')).toHaveClass('progress-bar--danger')
+    expect(rowFor('Transportation')).toHaveTextContent('Over budget')
+    expect(rowFor('Transportation')).not.toHaveTextContent('Close to limit')
+  })
+
+  it('shows no alert for a budget under 80% of its limit', async () => {
+    // $200.00 of $500.00 is 40%.
+    getBudgetStatus.mockImplementation(async (month) => ({
+      month,
+      budgets: [status(FOOD, 20000, 40, 'under')],
+    }))
+    await showBudgets()
+
+    expect(barFor('Food')).toHaveClass('progress-bar--default')
+    expect(rowFor('Food')).not.toHaveTextContent('Close to limit')
+    expect(rowFor('Food')).not.toHaveTextContent('Over budget')
+  })
+
+  it('updates the alert when an expense takes a budget over its limit', async () => {
+    await showBudgets()
+    createTransaction.mockImplementation(async (payload) => savedFrom(payload))
+    // After the save, Food has $100.00 more: $504.87 of $500.00, 100% (rounded down), over by $4.87.
+    getBudgetStatus.mockImplementation(async (month) => ({
+      month,
+      budgets: [status(FOOD, 50487, 100, 'over'), ...OCTOBER.slice(1)],
+    }))
+
+    fireEvent.click(within(rowFor('Food')).getByRole('button', { name: 'Add expense to Food' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Add expense' })
+    fireEvent.change(within(drawer).getByLabelText('Amount ($)'), { target: { value: '100' } })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save expense' }))
+
+    await waitFor(() => expect(barFor('Food')).toHaveClass('progress-bar--danger'))
+    expect(rowFor('Food')).toHaveTextContent('Over budget')
+    // Over by one cent or more still reads 100% used; only the status tells it apart.
+    expect(rowFor('Food')).toHaveTextContent('100% used')
   })
 })
 

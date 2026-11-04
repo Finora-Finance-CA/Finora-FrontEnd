@@ -1,0 +1,35 @@
+/* Summary cards across the top; alerts and the category chart side by side on wide
+   screens; the 6-month trend full width underneath. One column on narrow screens. */
+.dashboard {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+.dashboard__summary,
+.dashboard__panel--wide {
+  grid-column: 1 / -1;
+}
+
+.dashboard__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0; /* lets charts shrink inside the grid instead of overflowing */
+}
+
+.dashboard__heading {
+  font-size: var(--text-md, 1rem);
+  font-weight: var(--weight-medium);
+}
+
+.dashboard__placeholder {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 900px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+  }
+}

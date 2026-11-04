@@ -12,6 +12,7 @@ import { centsToDollarString, formatCents } from '../transactions/money'
 import { parseLimitToCents } from './limits'
 import RemoveBudgetDialog from './RemoveBudgetDialog'
 import './BudgetRow.css'
+import { budgetAlert } from './budgetAlerts'
 
 // The API names the field limit_cents; people see "Limit".
 function humanizeLimitError(message) {
@@ -288,21 +289,23 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
 }
 
 // The bar and the figures under it. The text says everything the bar shows, so its
-// length and colour are never the only signal.
+// length and colour are never the only signal. The status (US-39, US-40) colours the
+// bar and adds a label.
 function BudgetProgress({ category, spending }) {
-  const { percent_used: percent, remaining_cents: remaining } = spending
+  const { percent_used: percent, remaining_cents: remaining, status } = spending
   const left = remainingText(remaining)
+  const alert = budgetAlert(status)
 
   return (
     <div className="budget-row__progress">
-      {/* Always the default tone for now. US-39/US-40 map spending.status to a tone
-          here: "warning" to tone="warning", "over" to tone="danger". */}
-      <ProgressBar value={percent} label={`${category} spending`} valueText={`${percent}% used, ${left}`} tone="default" />
+      <ProgressBar value={percent} label={`${category} spending`} valueText={`${percent}% used, ${left}`} tone={alert.tone} />
       <p className="budget-row__figures tabular">
         <span>{percent}% used</span>
+        {alert.label && (
+          <span className={`budget-row__alert budget-row__alert--${alert.tone}`}>{alert.label}</span>
+        )}
         <span className="budget-row__remaining">{left}</span>
       </p>
     </div>
   )
 }
-
