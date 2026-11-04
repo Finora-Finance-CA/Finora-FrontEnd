@@ -219,7 +219,7 @@ describe('keeping the figures current (US-38)', () => {
     expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({ type: 'expense', category: 'Food', amount_cents: 1250 }))
     expect(screen.getByText('Expense of $12.50 saved.')).toBeInTheDocument()
     await waitFor(() => expect(rowFor('Food')).toHaveTextContent('$417.37 of $500.00'))
-    expect(getBudgetStatus).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(getBudgetStatus).toHaveBeenCalledTimes(2))
     expect(rowFor('Food').querySelector('.budget-row__remaining')).toHaveTextContent('$82.63 left')
   })
 
@@ -247,7 +247,7 @@ describe('keeping the figures current (US-38)', () => {
     // The old figures were for a $500.00 limit, so they aren't shown against $600.00.
     await waitFor(() => expect(rowFor('Food')).toHaveTextContent('$600.00 a month'))
     expect(within(rowFor('Food')).queryByRole('progressbar')).not.toBeInTheDocument()
-    expect(getBudgetStatus).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(getBudgetStatus).toHaveBeenCalledTimes(2))
 
     // $404.87 of $600.00 is 67.48%, so 67, $195.13 left.
     act(() => answer({ month: '2026-10', budgets: [status({ ...FOOD, limit_cents: 60000 }, 40487, 67, 'under')] }))
@@ -266,7 +266,7 @@ describe('errors', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByRole('progressbar', { name: 'Food spending' })).toBeInTheDocument()
-    expect(getBudgetStatus).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(getBudgetStatus).toHaveBeenCalledTimes(2))
     expect(listBudgets).toHaveBeenCalledTimes(1)
   })
 })

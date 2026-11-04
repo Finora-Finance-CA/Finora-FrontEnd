@@ -11,6 +11,8 @@ import { useMonthlySummary } from '../summary/useMonthlySummary'
 import { useMonthParam } from '../summary/useMonthParam'
 import './DashboardPage.css'
 import BudgetAlertsPanel from '../dashboard/BudgetAlertsPanel'
+import CategorySpendingChart from '../dashboard/CategorySpendingChart'
+import SpendingTrendChart from '../dashboard/SpendingTrendChart'
 
 /**
  * /dashboard (US-42): the key numbers for one month in one place. The month is in the
@@ -41,16 +43,12 @@ export default function DashboardPage() {
 
         <section className="dashboard__panel" aria-labelledby="dashboard-categories">
           <h2 id="dashboard-categories" className="dashboard__heading">Spending by category</h2>
-          <Card>
-            <p className="dashboard__placeholder">Coming soon (US-43).</p>
-          </Card>
+            <CategorySpendingChart month={month} />
         </section>
 
         <section className="dashboard__panel dashboard__panel--wide" aria-labelledby="dashboard-trend">
           <h2 id="dashboard-trend" className="dashboard__heading">Spending over the last 6 months</h2>
-          <Card>
-            <p className="dashboard__placeholder">Coming soon (US-44).</p>
-          </Card>
+            <SpendingTrendChart month={month} />
         </section>
       </div>
     </div>
