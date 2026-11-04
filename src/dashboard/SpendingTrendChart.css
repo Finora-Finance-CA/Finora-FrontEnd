@@ -1,0 +1,29 @@
+/* Recharts writes colours onto the SVG; these use the design tokens instead, so the
+   chart follows light and dark mode. */
+.trend-chart .recharts-bar-rectangle .recharts-rectangle {
+  fill: var(--accent);
+}
+
+.trend-chart .recharts-cartesian-axis-tick-value {
+  fill: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.trend-chart .recharts-cartesian-grid line {
+  stroke: var(--border);
+}
+
+.trend-chart .recharts-label {
+  fill: var(--text);
+  font-size: var(--text-xs);
+}
+
+.trend-chart__cursor {
+  fill: var(--surface-3);
+}
+
+.trend-chart__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

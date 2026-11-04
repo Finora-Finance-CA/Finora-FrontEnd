@@ -3,7 +3,7 @@
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { listBudgets } from '../api/budgets'
+import { getBudgetStatus, listBudgets } from '../api/budgets'
 import { getMonthlySummary } from '../api/summary'
 import { listTransactions } from '../api/transactions'
 import { resetFakeSupabase } from '../test/fakeSupabase'
@@ -28,6 +28,7 @@ beforeEach(() => {
     transaction_count: 0,
   }))
   listBudgets.mockResolvedValue([])
+  getBudgetStatus.mockImplementation(async (month) => ({ month, budgets: [] }))
 })
 
 describe('AppShell', () => {
@@ -36,9 +37,12 @@ describe('AppShell', () => {
     await screen.findByRole('heading', { name: 'Transactions', level: 1 })
 
     const links = within(mainNav()).getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['Transactions', 'Summary', 'Budgets'])
+    expect(links.map((link) => link.textContent)).toEqual(['Dashboard', 'Transactions', 'Summary', 'Budgets', 'Savings goals'])
     expect(within(mainNav()).getByRole('link', { name: 'Transactions' })).toHaveAttribute('aria-current', 'page')
     expect(within(mainNav()).getByRole('link', { name: 'Summary' })).not.toHaveAttribute('aria-current')
+    expect(
+      within(mainNav()).getByRole('link', { name: 'Savings goals' })
+    ).toHaveAttribute('href', '/goals')
   })
 
   it.each([

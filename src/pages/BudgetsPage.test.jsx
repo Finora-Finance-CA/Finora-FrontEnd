@@ -3,7 +3,7 @@
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createBudget, deleteBudget, listBudgets, updateBudget } from '../api/budgets'
+import { createBudget, deleteBudget, getBudgetStatus, listBudgets, updateBudget } from '../api/budgets'
 import { ApiError } from '../api/client'
 import { renderApp } from '../test/renderApp'
 
@@ -52,8 +52,10 @@ function submit(category) {
 }
 
 beforeEach(() => {
-  for (const mock of [createBudget, deleteBudget, listBudgets, updateBudget]) mock.mockReset()
+  for (const mock of [createBudget, deleteBudget, getBudgetStatus, listBudgets, updateBudget]) mock.mockReset()
   listBudgets.mockResolvedValue([])
+  // No spending figures unless a test gives some (see BudgetsPage.spending.test.jsx).
+  getBudgetStatus.mockImplementation(async (month) => ({ month, budgets: [] }))
 })
 
 describe('budget list (US-32)', () => {

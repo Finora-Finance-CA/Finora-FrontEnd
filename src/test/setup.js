@@ -20,3 +20,13 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
 })
+
+// jsdom has no ResizeObserver; Recharts' ResponsiveContainer needs one to exist. It never
+// fires here, so charts don't draw in tests: tests check each chart's table instead.
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}

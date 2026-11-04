@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ChartPie, LogOut, Menu, Wallet } from 'lucide-react'
+import { ArrowLeftRight, ChartPie, LayoutDashboard, LogOut, Menu, Wallet, Target } from 'lucide-react'
 import { Suspense, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../context/useAuth'
@@ -10,9 +10,11 @@ import IconButton from './ui/IconButton'
 import './AppShell.css'
 
 const LINKS = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/summary', label: 'Summary', icon: ChartPie },
   { to: '/budgets', label: 'Budgets', icon: Wallet },
+  { to: '/goals', label: 'Savings goals', icon: Target },
 ]
 
 /**

@@ -11,6 +11,7 @@ Syed Kazmi, Usayd Jahangiri, Ayaan Sethi
 - Plain CSS, one file per component, using the design tokens in `src/index.css` (light and dark mode); see [UI system](#ui-system)
 - Inter, self-hosted with `@fontsource/inter` (latin subset, weights 400, 500 and 600)
 - `lucide-react` icons, imported one by one
+- Recharts for the dashboard charts (SVG, coloured with the design tokens)
 - Supabase Auth (`@supabase/supabase-js`) for sign-up, login and sessions
 - Vitest and Testing Library for tests
 
@@ -61,6 +62,7 @@ The app runs at http://localhost:5173.
 | --- | --- | --- |
 | `/login` | Signed-out users only | `AuthPage` in login mode |
 | `/register` | Signed-out users only | `AuthPage` in register mode |
+| `/dashboard` | Signed-in users only | `DashboardPage`. Takes `?month=YYYY-MM`, like `/summary`. |
 | `/transactions` | Signed-in users only | `TransactionsPage`. Takes `?q=`, `?category=` (repeatable), `?from=`, `?to=` and `?page=` for the list's search, filters and page. |
 | `/summary` | Signed-in users only | `SummaryPage`. Takes `?month=YYYY-MM`; without it (or with an invalid one) it shows the current month. |
 | `/budgets` | Signed-in users only | `BudgetsPage` |
@@ -81,7 +83,7 @@ Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only
 
 Email confirmation is currently **off** in Supabase, so new accounts are signed in straight away. Minimum password length is 8.
 
-`src/components/AppShell.jsx` is the frame around every signed-in page: a **Skip to main content** link; from 1024px wide, a fixed sidebar with the logo, the main navigation (Transactions, Summary, Budgets, with icons and `aria-current="page"` on the current one) and, at the bottom, the logged-in email and **Log out**; below 1024px, a top bar with the logo and **Open menu**, which opens the same navigation and account in a sheet. The page renders into the shell's `<main id="main">`, the skip link's target. The login and register pages have no app chrome, just a centred card. `src/components/Logo.jsx` is the logo (a wordmark for now) used in the sidebar, the top bar and the sign-in card.
+`src/components/AppShell.jsx` is the frame around every signed-in page: a **Skip to main content** link; from 1024px wide, a fixed sidebar with the logo, the main navigation (Dashboard, Transactions, Summary, Budgets, Savings goals, with icons and `aria-current="page"` on the current one) and, at the bottom, the logged-in email and **Log out**; below 1024px, a top bar with the logo and **Open menu**, which opens the same navigation and account in a sheet. The page renders into the shell's `<main id="main">`, the skip link's target. The login and register pages have no app chrome, just a centred card. `src/components/Logo.jsx` is the logo (a wordmark for now) used in the sidebar, the top bar and the sign-in card.
 
 ## Transactions page
 `/transactions` has a header with **Add transaction**, a toolbar with search and filters, and **Transaction history**: a table on wide screens and stacked rows on phones.
@@ -121,6 +123,24 @@ Email confirmation is currently **off** in Supabase, so new accounts are signed 
 | `src/transactions/constants.js` | Categories and their label colours, page size, search limits and form rules. Mirrors the API's `src/constants.js`. |
 
 Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for light and dark mode. `constants.test.js` checks every text and background pair is at least 4.5:1.
+## Dashboard
+`/dashboard` brings one month's key numbers together (US-42). The month switcher sits in the page header, with the month in the URL (`/dashboard?month=2026-11`), and every panel shows that same month.
+
+- **Summary cards:** the same three cards as `/summary` (`SummaryCards`).
+- **Budget alerts** (US-41): every category at 80% or more of its limit, fullest first (by spent ÷ limit, so "over by a cent" sorts above "exactly full"), with the same labels and bar colours as the Budgets page. "All budgets on track" when none qualifies, and "No budgets yet" with a link when there are none. **Manage budgets** opens `/budgets` on the same month.
+- **Spending by category** (US-43): a horizontal bar per expense category from `GET /api/summary/categories`, with each amount on its bar and on hover. "No expenses in …" with **Add an expense** for an empty month.
+- **Spending over the last 6 months** (US-44): a bar per month from `GET /api/summary/trend`, ending at the chosen month, with the year shown on the first bar and on January. "No expenses in the last 6 months" when every month is zero.
+- **Charts and accessibility:** charts are drawn with Recharts and coloured by CSS rules that use the design tokens, so they follow light and dark mode. Each chart is hidden from screen readers and has a visually hidden table with the same figures. Amounts are written on the bars, so nothing depends on hover. Animation is off.
+- **Staying current:** every panel loads with `useMonthData`, so it reloads after a transaction changes and when the tab is shown again (US-38).
+
+| File | Job |
+| --- | --- |
+| `src/pages/DashboardPage.jsx` | The month in the URL, the summary cards, and the layout |
+| `src/dashboard/BudgetAlertsPanel.jsx` | Categories at 80% or more, sorted, with their states |
+| `src/dashboard/CategorySpendingChart.jsx` | The category bar chart and its table |
+| `src/dashboard/SpendingTrendChart.jsx` | The 6-month bar chart and its table |
+| `src/dashboard/useChartData.js` | `useCategorySpending` and `useSpendingTrend`, built on `useMonthData` |
+| `src/budgets/budgetAlerts.js` | Each budget status's tone and label, shared with the Budgets page |
 
 ## Summary page
 `/summary` shows one month's **Total income**, **Total expenses** and **Net balance** from `GET /api/summary`, as three stat cards with amounts from `formatCents`. The month switcher sits in the page header.
@@ -128,16 +148,29 @@ Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for
 - **Month:** starts on the user's current month (in their own time zone). **Previous** and **Next** step a month at a time, across years too, and the month's name (e.g. "October 2026") is announced when it changes. **This month** jumps back. The month is in the URL (`/summary?month=2026-09`), so refresh and **Back** keep it; an invalid month in the URL shows the current month. January 1900 is the earliest.
 - **Net balance:** a surplus is green with the word **Surplus**; a deficit is red, with a minus sign and the word **Deficit**; equal income and expenses say **Even**. Colour is never the only signal.
 - **States:** placeholder cards while the first month loads (with "Loading summary…" for screen readers), an error with **Try again** (or **Sign in again** if the session has ended), "No transactions in August 2026." with a link to add one under the $0.00 cards, and the cards. While another month loads, the last one stays on screen, dimmed.
+- **Staying current** (US-38): the summary loads again after a transaction is added, edited or deleted, and when the tab is shown again. See [Keeping figures current](#keeping-figures-current).
 
 ## Budgets page
-`/budgets` has a row for every category (`BUDGET_CATEGORIES`), each with its monthly limit or "No limit set".
+`/budgets` has a row for every category (`BUDGET_CATEGORIES`), each with its monthly limit or "No limit set". The month switcher from `/summary` sits in the page header, with the month in the URL the same way (`/budgets?month=2026-09`).
+
+- **Spending** (US-36, US-37): each row with a limit shows what was spent of it in that month ("$404.87 of $500.00"), a progress bar, the percent used and what's left ("$95.13 left", or "Over by $23.15"), from `GET /api/budgets/status`. The bar stops at full width, but the percent can pass 100. Limits aren't kept per month, so every month is compared with the current limit, and the page says so. Right after a limit changes, the row shows just the new limit until the figures for it arrive, so old figures never sit next to a new limit.
+- **Add expense** on a row with a limit opens the add drawer with that category chosen. After saving, the drawer closes, the page says what was saved, and the row's figures load again in place (US-38).
 
 - **Set limit** or **Edit** opens a small form in the row. Typed dollars become cents with string parsing only (`readDollars` in `money.js`, shared with the transaction form), so "1,000.00", "$12" and " 40 " all work and nothing goes through floating point. **Save limit** sends `POST /api/budgets` (new) or `PUT /api/budgets/:id` (change). **Cancel** or **Escape** closes the form, and focus goes back to the row's button.
 - **Invalid limits** (US-33): empty, zero, negative and non-numeric limits are blocked with "Enter a limit greater than zero."; more than two decimals with "Use at most two decimal places, like 500.00." The error is under the field and linked to it. If the API still rejects a limit, its message shows on the field ("Limit must be greater than zero.").
 - **Duplicates:** if a limit for that category was added somewhere else meanwhile, the API's 409 message shows ("You already have a budget for Food. Change that one instead.") and the list loads again, so the next **Save limit** changes that one.
 - **Remove** asks first, in a dialog with **Cancel** focused. **Remove limit** sends `DELETE /api/budgets/:id`.
 - **Feedback:** each row says what happened ("Food limit saved: $500.00 a month.", "Food limit removed.") until the next change. Nothing disappears on a timer. A limit that was removed somewhere else is taken off the row with a message.
-- **States:** a placeholder row per category while loading (with "Loading budgets…" for screen readers), an error with **Try again** (or **Sign in again**), and a note when no limits are set yet.
+- **States:** a placeholder row per category while loading (with "Loading budgets…" for screen readers), an error with **Try again** (or **Sign in again**) if the limits or the month's spending don't load, and a note when no limits are set yet. While another month or fresh figures load, the rows stay on screen.
+- **Alerts**: each bar's colour and label come from the API's `status`, through `budgetAlert` (`src/budgets/budgetAlerts.js`): 80% up to and including 100% is amber with **Close to limit**, and more than the limit is red with **Over budget**. The API decides the status (`compareToLimit` in Finora-API); the front-end never recalculates it, so the Budgets page and the dashboard always agree. A budget over by one cent can still read 100%, so always use `status`, not the percent.
+
+### Keeping figures current
+Figures built from transactions load again by themselves (US-38):
+
+- `TransactionsSyncProvider` (`src/context/TransactionsSyncContext.jsx`) wraps the signed-in pages in `App.jsx`. `useTransactionsSync()` gives `{ version, notifyTransactionsChanged }`.
+- Every successful change calls `notifyTransactionsChanged()`: adding and editing in `useTransactionForm`, deleting in `TransactionHistory`, and finding that a transaction was already gone (a 404 on edit or delete). The API module itself never does.
+- `useMonthData(month, load)` (`src/summary/useMonthData.js`) loads one month of data and loads it again when the month changes, on **Try again**, after a notification and when the tab is shown again (`visibilitychange`), keeping what's on screen while it does. `useMonthlySummary` and `useBudgetStatus` are built on it; a new page (the Dashboard) can use those, or `useMonthData` with its own API call.
+- `useMonthParam()` (`src/summary/useMonthParam.js`) is the `?month=` handling shared by `/summary` and `/budgets`.
 
 | File | Job |
 | --- | --- |
@@ -146,14 +179,62 @@ Category label colours are set once, in `CATEGORY_COLORS` in `constants.js`, for
 | `src/summary/SummaryCards.jsx` | The three cards, and Surplus / Deficit / Even |
 | `src/summary/months.js` | Months as `YYYY-MM`: the current month, stepping, and "October 2026" labels, with no time zone maths |
 | `src/summary/useMonthlySummary.js` | Loads a month's summary |
-| `src/pages/BudgetsPage.jsx` | One row per category, and the page's states |
-| `src/budgets/BudgetRow.jsx` | One category's limit, its form, and its messages |
+| `src/summary/useMonthData.js` | Loads one month of data, and again after a change or when the tab is shown |
+| `src/summary/useMonthParam.js` | The month in the URL, shared by `/summary` and `/budgets` |
+| `src/pages/BudgetsPage.jsx` | One row per category, the month, the add drawer, and the page's states |
+| `src/budgets/BudgetRow.jsx` | One category's limit, its spending and progress bar, its form, and its messages |
+| `src/budgets/useBudgetStatus.js` | Loads a month's spending against each budget |
+| `src/components/ui/ProgressBar.jsx` | The bar, capped at full width, with `default`, `warning` and `danger` tones |
+| `src/context/TransactionsSyncContext.jsx`, `src/context/useTransactionsSync.js` | Telling pages that transactions changed |
 | `src/budgets/RemoveBudgetDialog.jsx` | The remove confirmation |
 | `src/budgets/limits.js` | Dollars to cents for a limit, with the limit's messages |
 | `src/budgets/useBudgets.js` | Loads the budgets and keeps them current |
 | `src/api/summary.js`, `src/api/budgets.js` | The API calls |
 
 A 409 from the API becomes an `ApiError` with `kind: 'conflict'` and the API's own message (it's written for people), or "That already exists." if it has none.
+
+## Savings goals
+
+Signed-in users can open **Savings goals** from the navigation menu
+or visit `/goals`.
+
+### Create, edit and delete goals
+- Create a goal with a name, target amount in CAD and optional target date.
+- Edit a goal and confirm with **Save changes**.
+- Delete a goal after confirming in the deletion dialog.
+- Invalid targets, including zero and negative amounts, are rejected.
+
+### Contributions
+- Click **Add contribution** on a goal to record money saved.
+- Contributions increase the goal's saved total.
+- Zero, negative and invalid contribution amounts are rejected.
+- Amounts are converted to integer cents before being sent to the API.
+
+### Progress
+- Each goal displays its saved amount, target amount and percentage complete.
+- Progress updates after a contribution is saved.
+- The progress bar fills up to 100%; the percentage can exceed 100%
+  when savings exceed the target.
+
+### API
+All requests require authentication. Users can only access their own goals.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/goals` | List goals |
+| POST | `/api/goals` | Create a goal |
+| PUT | `/api/goals/:id` | Update a goal |
+| DELETE | `/api/goals/:id` | Delete a goal |
+| POST | `/api/goals/:id/contributions` | Add to the saved total |
+
+### Main files
+| File | Purpose |
+| --- | --- |
+| `src/pages/GoalsPage.jsx` | Goal cards, create/edit forms, deletion confirmation and progress |
+| `src/pages/GoalsPage.css` | Goal page styles |
+| `src/pages/ContributionDialog.jsx` | Contribution form |
+| `src/api/goals.js` | Authenticated API calls for goals and contributions |
+| `src/components/ui/ProgressBar.jsx` | Reusable progress bar |
 
 ## Tests
 
@@ -164,11 +245,12 @@ npm test
 Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. The tests never call the API or Supabase:
 
 - `src/test/setup.js` runs first in every file. It adds the jest-dom matchers (`toBeInTheDocument`, `toHaveFocus`, ...), replaces `src/lib/supabase.js` with `src/test/fakeSupabase.js` (signed in by default; `resetFakeSupabase({ session: null })` signs out), and cleans up after each test.
-- Tests that render pages mock the API modules (`vi.mock('../api/transactions')`, `'../api/summary'`, `'../api/budgets'`) and set what each function returns. Reset the mocks in `beforeEach`: `restoreMocks` doesn't clear queued `mockResolvedValueOnce` values. Summary tests fix the clock with `vi.useFakeTimers({ toFake: ['Date'] })`, so only dates are faked. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
+- Tests that render pages mock the API modules (`vi.mock('../api/transactions')`, `'../api/summary'`, `'../api/budgets'`) and set what each function returns. Reset the mocks in `beforeEach`: `restoreMocks` doesn't clear queued `mockResolvedValueOnce` values. Summary and budget spending tests fix the clock with `vi.useFakeTimers({ toFake: ['Date'] })`, so only dates are faked. `src/test/transactions.js` builds transactions shaped like the API's, and `pageOf([...])` builds the `{ transactions, pagination }` that `listTransactions` returns.
 - `renderApp(path)` from `src/test/renderApp.jsx` renders the whole app (routes and `AuthProvider`) at a path, so tests use the page the way a user does. `currentPath()` and `currentSearch()` say where the app is now. Pages are lazy-loaded, so use `findBy...` for the first thing on a page; `setup.js` gives those waits up to 5 seconds.
 - Every UI primitive has its own test next to it in `src/components/ui` (what it renders, its accessible name, and its keyboard behaviour), and `src/pages/AuthPage.test.jsx` covers login and register.
 - Focus that moves in an effect (after a dialog closes, after a save) and reloads started in an effect can land in a later task than the change that caused them, so assert them inside `waitFor`.
 - `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
+- `setup.js` also gives jsdom a do-nothing `ResizeObserver`, which Recharts needs. Charts don't draw in tests, so dashboard tests check each chart's visually hidden table instead.
 
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
@@ -180,9 +262,9 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 4. Get the current user with `useAuth()` if the page needs it.
 
 ## UI system
-The look is set by tokens in `src/index.css`, and pages are built from the primitives in `src/components/ui`. Component stylesheets use the tokens only: no raw colours, font sizes, spacing, radii, shadows or durations. Inline styles are used only to pass dynamic values as CSS variables (category colours).
+The look is set by tokens in `src/index.css`, and pages are built from the primitives in `src/components/ui`. Component stylesheets use the tokens only: no raw colours, font sizes, spacing, radii, shadows or durations. Inline styles are used only to pass dynamic values as CSS variables (category colours, a progress bar's fill).
 
-- **Colour:** neutral surfaces (`--bg`, `--surface`, `--surface-2`, `--surface-3`), `--border`, `--border-field` (control edges, 3:1 or more), `--text` and `--text-muted` (4.5:1 or more on every surface, in both modes), one accent (`--accent` Cobalt, `--accent-text`, `--accent-tint`, `--ring`), and `--positive` / `--negative` for money and status only. Dark mode follows the operating system.
+- **Colour:** neutral surfaces (`--bg`, `--surface`, `--surface-2`, `--surface-3`), `--border`, `--border-field` (control edges, 3:1 or more), `--text` and `--text-muted` (4.5:1 or more on every surface, in both modes), one accent (`--accent` Cobalt, `--accent-text`, `--accent-tint`, `--ring`), and `--positive` / `--warning` / `--negative` (each with a `-bg`) for money and status only. Dark mode follows the operating system.
 - **Type:** Inter at 12, 14, 16, 20, 24 and 32px (`--text-xs` to `--text-2xl`, each with its `--leading-*`), weights 400, 500 and 600. Add the `tabular` class to anything with figures.
 - **Space and shape:** `--space-1` to `--space-9` (4, 8, 12, 16, 24, 32, 40, 48, 64px); radii 4, 6, 10 and 14px plus pills; shadows only on floating layers (`--shadow-popover`, `--shadow-overlay`).
 - **Motion:** 150ms (`--duration-fast`) for hover and menus, 200ms (`--duration-base`) for drawers and sheets, ease-out, transform and opacity only; all of it is off with `prefers-reduced-motion`.
@@ -204,6 +286,7 @@ The look is set by tokens in `src/index.css`, and pages are built from the primi
 | `Card` | `as`, `padded` |
 | `Pill` | `colors` ({ light, dark } text and background) |
 | `Alert` | `tone` (error, success), `role` |
+| `ProgressBar` | `value` (percent; the fill stops at 100), `label` (its accessible name), `valueText` (the real figure in words), `tone` (default, warning, danger) |
 | `Skeleton` | `shape` (text, short, amount, pill, figure) |
 | `EmptyState` | `icon`, `title`, `action`, and detail as children |
 | `PageHeader` | `title`, `subtitle`, `actions` |
