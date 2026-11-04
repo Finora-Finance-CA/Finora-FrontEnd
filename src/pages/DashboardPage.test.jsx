@@ -42,6 +42,19 @@ const OCTOBER_BUDGETS = [
 
 const OCTOBER_SUMMARY = summaryFor('2026-10', { income: 245000, expenses: 199886, count: 4 })
 
+// $94.87 + $1,800.00 + $25.99 = $1,920.86.
+const OCTOBER_CATEGORIES = {
+  month: '2026-10',
+  total_cents: 192086,
+  categories: [
+    { category: 'Food', spent_cents: 9487 },
+    { category: 'Transportation', spent_cents: 0 },
+    { category: 'Housing', spent_cents: 180000 },
+    { category: 'Entertainment', spent_cents: 0 },
+    { category: 'Other', spent_cents: 2599 },
+  ],
+}
+
 function card(label) {
   return screen.getByText(label, { selector: 'dt' }).closest('.summary-card')
 }
@@ -50,6 +63,9 @@ function alertsPanel() {
   return screen.getByRole('region', { name: 'Budget alerts' })
 }
 
+function categoryPanel() {
+  return screen.getByRole('region', { name: 'Spending by category' })
+}
 async function showDashboard(path = '/dashboard') {
   renderApp(path)
   await screen.findByText('Total income')
@@ -208,5 +224,58 @@ describe('budget alerts panel (US-41)', () => {
 
     expect(await within(alertsPanel()).findByRole('link', { name: 'Sign in again.' })).toBeInTheDocument()
     expect(within(alertsPanel()).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+})
+
+describe('spending by category (US-43)', () => {
+  beforeEach(() => {
+    getCategorySpending.mockImplementation(async (month) =>
+      month === '2026-10' ? OCTOBER_CATEGORIES : { month, total_cents: 0, categories: [] }
+    )
+  })
+
+  it('lists every category with what was spent, and the total, for screen readers', async () => {
+    await showDashboard()
+
+    const table = await within(categoryPanel()).findByRole('table', { name: 'Spending by category in October 2026' })
+    const rows = within(table).getAllByRole('row').slice(1).map((row) => row.textContent)
+    expect(rows).toEqual([
+      'Food$94.87',
+      'Transportation$0.00',
+      'Housing$1,800.00',
+      'Entertainment$0.00',
+      'Other$25.99',
+      'Total$1,920.86',
+    ])
+  })
+
+  it('loads the chosen month', async () => {
+    await showDashboard()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Previous month/ }))
+
+    await waitFor(() => expect(getCategorySpending).toHaveBeenLastCalledWith('2026-09'))
+  })
+
+  it('says so for a month with no expenses, with a link to add one', async () => {
+    await showDashboard('/dashboard?month=2026-08')
+
+    expect(await within(categoryPanel()).findByText('No expenses in August 2026')).toBeInTheDocument()
+    expect(within(categoryPanel()).getByRole('link', { name: 'Add an expense' })).toHaveAttribute('href', '/transactions')
+  })
+
+  it('shows an error with Try again, and Try again loads it', async () => {
+    getCategorySpending.mockRejectedValueOnce(
+      new ApiError('network', "We couldn't reach the server. Check your connection and try again.")
+    )
+    await showDashboard()
+
+    expect(
+      await within(categoryPanel()).findByText("We couldn't load your spending for October 2026.", { exact: false })
+    ).toBeInTheDocument()
+    fireEvent.click(within(categoryPanel()).getByRole('button', { name: 'Try again' }))
+
+    expect(await within(categoryPanel()).findByRole('table')).toBeInTheDocument()
+    expect(getCategorySpending).toHaveBeenCalledTimes(2)
   })
 })
