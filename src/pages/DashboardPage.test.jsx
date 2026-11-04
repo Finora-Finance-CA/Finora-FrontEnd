@@ -5,7 +5,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getBudgetStatus } from '../api/budgets'
 import { ApiError } from '../api/client'
-import { getMonthlySummary } from '../api/summary'
+import { getCategorySpending, getMonthlySummary, getSpendingTrend } from '../api/summary'
 import { currentSearch, renderApp } from '../test/renderApp'
 
 vi.mock('../api/summary')
@@ -66,6 +66,10 @@ beforeEach(() => {
     month,
     budgets: month === '2026-10' ? OCTOBER_BUDGETS : [],
   }))
+  getCategorySpending.mockReset()
+  getSpendingTrend.mockReset()
+  getCategorySpending.mockImplementation(async (month) => ({ month, total_cents: 0, categories: [] }))
+  getSpendingTrend.mockImplementation(async (month) => ({ month, months: [] }))
 })
 
 afterEach(() => {
