@@ -25,6 +25,7 @@
 
 .dialog__header {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -124,6 +125,42 @@
   .dialog__body {
     padding: var(--space-4);
   }
+}
+
+/* Narrow phones (US-55): the add and edit drawer takes the whole screen, so the form
+   has all the room there is and the page behind can't be tapped by mistake. */
+@media (max-width: 639px) {
+  .dialog-backdrop--drawer {
+    align-items: stretch;
+  }
+
+  .dialog--drawer {
+    height: 100%;
+    max-height: none;
+    border-width: 0;
+    border-radius: 0;
+  }
+}
+
+/* Safe areas: layers that touch the screen's edges keep their content clear of a
+   notch, rounded corners and the home indicator. */
+.dialog--nav .dialog__header,
+.dialog--drawer .dialog__header {
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
+}
+
+.dialog--nav,
+.dialog--drawer,
+.dialog--sheet {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.dialog--nav {
+  padding-left: env(safe-area-inset-left);
+}
+
+.dialog--drawer {
+  padding-right: env(safe-area-inset-right);
 }
 
 @keyframes dialog-fade {

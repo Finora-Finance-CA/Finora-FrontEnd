@@ -1,9 +1,17 @@
-/* One column on a phone, three side by side when there's room. */
+/* One column on a phone, two on a tablet, three side by side on a desktop (US-56). */
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   margin: 0;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* The previous month stays readable while the next one loads. */

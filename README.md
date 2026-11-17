@@ -256,8 +256,18 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 - `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
 - `setup.js` also gives jsdom a do-nothing `ResizeObserver`, which Recharts needs. Charts don't draw in tests, so dashboard tests check each chart's visually hidden table instead.
 
+### Browser tests
+```bash
+npx playwright install chromium   # once, to download the browser
+npm run e2e
+```
+
+Playwright runs the app in Chromium at phone, tablet and desktop widths (`e2e/`, `*.spec.js`; Vitest only reads `src/**/*.test.js(x)`, so neither runs the other's files). It starts its own dev server on port 5174 with the API and Supabase pointed at that server, and `e2e/support/mockBackend.js` answers every API and Supabase Auth request from realistic fixtures (`e2e/support/fixtures.js`: six months of transactions, budgets under, near and over their limits, goals with contributions). Nothing reaches the real API, Supabase or database: any other request is blocked and fails the test. The clock is fixed at 15 November 2026, so figures never change.
+
+Write tests with `test` and `expect` from `e2e/support/test.js`: pages open signed in unless a test says `test.use({ signedIn: false })`, `backend` gives the mock's data, and `expectNoHorizontalScroll(page)` checks a page fits. `e2e/responsive.spec.js` saves a screenshot of every page at 320, 375, 768 and 1280px to `e2e-screenshots/<width>/` (gitignored) for review.
+
 ### CI
-`.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
+`.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request, and the browser tests (`npm run e2e`) in a second job, with Chromium cached per Playwright version. Neither needs secrets. A pull request should only be merged when both jobs pass.
 
 ## Adding a protected page
 1. Create the page in `src/pages`. Wrap it in `<div className="page">` (the shared layout in `index.css`) and start it with `<PageHeader title="..." />`; the app shell already provides `<main id="main">`.
@@ -280,7 +290,7 @@ The look is set by tokens in `src/index.css`, and pages are built from the primi
 - **Space and shape:** `--space-1` to `--space-9` (4, 8, 12, 16, 24, 32, 40, 48, 64px); radii 4, 6, 10 and 14px plus pills; shadows only on floating layers (`--shadow-popover`, `--shadow-overlay`).
 - **Motion:** 150ms (`--duration-fast`) for hover and menus, 200ms (`--duration-base`) for drawers and sheets, ease-out, transform and opacity only; all of it is off with `prefers-reduced-motion`.
 - **Touch and focus:** controls are at least 44px tall (`--control-h`); compact ones look 36px and keep a 44px hit area. Every control shows a 2px focus ring.
-- **Breakpoints:** 768px (table rows, drawer or sheet, toolbar) and 1024px (sidebar or top bar). Tested at 375, 768, 1024 and 1440px.
+- **Breakpoints:** 640px (transactions as cards, the add and edit drawer full screen, summary cards two across), 768px (table rows, drawer or sheet, toolbar) and 1024px (sidebar or top bar, summary cards three across). Charts switch to a compact layout under 480px of their own width (`useContainerWidth`). Safe areas (`env(safe-area-inset-*)`, with `viewport-fit=cover`) keep the top bar, pages, sheets and toasts clear of notches. The browser tests check every page at 320, 375, 768 and 1280px.
 
 | Primitive | Props |
 | --- | --- |
