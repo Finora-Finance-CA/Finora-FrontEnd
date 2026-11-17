@@ -1,14 +1,19 @@
 // State and submit logic shared by the transaction forms. The form component only
 // renders; this hook owns the values, validation, the API call and its outcome.
+// Validation follows the shared pattern (../validation/useFormFields.js): each field is
+// checked on blur and on submit, nothing is sent until every field is valid, and focus
+// goes to the first invalid field.
 
 import { useRef, useState } from 'react'
 import { createTransaction, updateTransaction } from '../api/transactions'
 import { useTransactionsSync } from '../context/useTransactionsSync'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
+import { NOT_SAVED_CHECK_DETAILS } from '../validation/apiErrors'
+import { useFormFields } from '../validation/useFormFields'
 import { TRANSACTION_TYPES } from './constants'
 import { todayLocal } from './dates'
 import { centsToDollarString, formatCents } from './money'
-import { mapApiErrors, toTransactionPayload, validateField, validateTransactionForm } from './validation'
+import { mapApiErrors, toTransactionPayload, validateField } from './validation'
 
 function emptyValues() {
   return { amount: '', date: todayLocal(), category: '', description: '' }
@@ -53,14 +58,17 @@ export function useTransactionForm({
 }) {
   const { label, fields } = TRANSACTION_TYPES[type]
   const { notifyTransactionsChanged } = useTransactionsSync()
-  const [values, setValues] = useState(() =>
-    transaction ? valuesFrom(transaction) : { ...emptyValues(), ...initialValues }
-  )
-  const [errors, setErrors] = useState({})
+  // Only an expense shows a category, and there it's required.
+  const options = { categoryRequired: fields.includes('category'), fields }
+  const form = useFormFields({
+    initialValues: () => (transaction ? valuesFrom(transaction) : { ...emptyValues(), ...initialValues }),
+    fields,
+    validate: (field, values) => validateField(field, values, options),
+  })
+  const { values, errors, validateAll, showErrors, clearErrors } = form
   // A problem that isn't about one field: { kind, message }.
   const [formError, setFormError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   // Switching between expense and income keeps the typed values but drops every
   // error, which belonged to the other type. Done during render (not in an effect) so
@@ -68,54 +76,21 @@ export function useTransactionForm({
   const [shownType, setShownType] = useState(type)
   if (type !== shownType) {
     setShownType(type)
-    setErrors({})
+    clearErrors()
     setFormError(null)
-    setHasAttemptedSubmit(false)
   }
 
   // State updates aren't immediate, so a ref blocks a second submit fired before
   // the button re-renders as disabled (e.g. pressing Enter twice quickly).
   const submittingRef = useRef(false)
   const isMountedRef = useIsMountedRef()
-  const inputRefs = useRef({})
-  // Only an expense shows a category, and there it's required.
-  const options = { categoryRequired: fields.includes('category'), fields }
-
-  function focusField(field) {
-    inputRefs.current[field]?.focus()
-  }
-
-  function focusFirstError(fieldErrors) {
-    const first = fields.find((field) => fieldErrors[field])
-    if (first) focusField(first)
-  }
-
-  function handleChange(event) {
-    const { name, value } = event.target
-    const nextValues = { ...values, [name]: value }
-    setValues(nextValues)
-
-    // After a submit attempt, re-check a field as the user types so its error
-    // disappears once fixed (and comes back if they break it again). Before that,
-    // stay quiet so people aren't told off mid-typing.
-    if (hasAttemptedSubmit || errors[name]) {
-      setErrors((current) => ({ ...current, [name]: validateField(name, nextValues, options) }))
-    }
-  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     if (submittingRef.current) return
 
     setFormError(null)
-    setHasAttemptedSubmit(true)
-
-    const fieldErrors = validateTransactionForm(values, options)
-    setErrors(fieldErrors)
-    if (Object.keys(fieldErrors).length > 0) {
-      focusFirstError(fieldErrors)
-      return
-    }
+    if (!validateAll()) return
 
     const payload = toTransactionPayload(values, type, fields)
     submittingRef.current = true
@@ -139,6 +114,7 @@ export function useTransactionForm({
     setIsSubmitting(false)
     onSubmittingChange?.(false)
 
+    // On failure the form stays open with everything the user typed.
     if (failure) handleApiError(failure)
     else if (transaction) onSaved?.(saved)
     else onSaved?.(saved, `${label} of ${formatCents(payload.amount_cents)} saved.`)
@@ -150,12 +126,11 @@ export function useTransactionForm({
       return
     }
     if (err?.kind === 'validation') {
-      const { fieldErrors, otherErrors } = mapApiErrors(err.fieldErrors, fields)
-      setErrors(fieldErrors)
-      if (otherErrors.length > 0 || Object.keys(fieldErrors).length === 0) {
-        setFormError({ kind: 'validation', message: [err.message, ...otherErrors].join(' ') })
+      const { fieldErrors, hasOtherErrors } = mapApiErrors(err.fieldErrors, fields)
+      showErrors(fieldErrors)
+      if (hasOtherErrors || Object.keys(fieldErrors).length === 0) {
+        setFormError({ kind: 'validation', message: NOT_SAVED_CHECK_DETAILS })
       }
-      focusFirstError(fieldErrors)
       return
     }
     // ApiError messages are written for users; anything else is a bug, so stay generic.
@@ -168,15 +143,9 @@ export function useTransactionForm({
 
   /** Props to spread onto a field's input or select. */
   function fieldProps(field) {
-    return {
-      name: field,
-      value: values[field],
-      onChange: handleChange,
-      ref: (element) => {
-        inputRefs.current[field] = element
-        if (firstFieldRef && field === fields[0]) firstFieldRef.current = element
-      },
-    }
+    return form.fieldProps(field, (element) => {
+      if (firstFieldRef && field === fields[0]) firstFieldRef.current = element
+    })
   }
 
   return { values, errors, formError, isSubmitting, fieldProps, handleSubmit }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Button from '../components/ui/Button'
 import PageHeader from '../components/ui/PageHeader'
+import { useToast } from '../components/ui/useToast'
 import AddTransactionDrawer from '../transactions/AddTransactionDrawer'
 import { hasActiveFilters, isRangeReversed, readListQuery, writeListQuery } from '../transactions/listQuery'
 import TransactionHistory from '../transactions/TransactionHistory'
@@ -11,8 +12,7 @@ import './TransactionsPage.css'
 
 export default function TransactionsPage() {
   const [adding, setAdding] = useState(false)
-  // What just happened ("Expense of $12.50 saved."), shown above the table.
-  const [message, setMessage] = useState('')
+  const { showToast } = useToast()
   const addButtonRef = useRef(null)
 
   // The list's page, search and filters live in the URL, so refresh and Back keep them.
@@ -45,15 +45,15 @@ export default function TransactionsPage() {
   }, [pageIsPastEnd, pagination.total_pages, updateQuery])
 
   function openAdd() {
-    setMessage('')
     setAdding(true)
   }
 
   // The drawer closes and focus goes back to Add transaction; the list loads again so
-  // the new transaction shows where the API puts it.
+  // the new transaction shows where the API puts it. "Expense of $12.50 saved." shows
+  // as a toast.
   function handleAdded(_transaction, text) {
     setAdding(false)
-    setMessage(text)
+    showToast(text)
     list.reload()
   }
 
@@ -77,8 +77,6 @@ export default function TransactionsPage() {
         rangeReversed={rangeReversed}
         onQueryChange={updateQuery}
         onAddFirst={openAdd}
-        message={message}
-        onMessage={setMessage}
       />
       {adding && <AddTransactionDrawer onSaved={handleAdded} onClose={() => setAdding(false)} returnFocusRef={addButtonRef} />}
     </div>

@@ -39,9 +39,10 @@ export function useModalLayer(layerRef, { onClose, canClose = true, initialFocus
     // In order of preference. Each is checked again on close, in case it has gone.
     const focusOnClose = [returnFocusRef?.current, document.activeElement, fallbackFocusRef?.current]
     const backdrop = layer.parentElement
-    // Elements that were already inert stay that way when the layer closes.
+    // Elements that were already inert stay that way when the layer closes. Live regions
+    // (the toasts) stay readable, so a message sent while a layer is open is still heard.
     const others = [...document.body.children].filter(
-      (element) => element !== backdrop && !element.hasAttribute('inert')
+      (element) => element !== backdrop && !element.hasAttribute('inert') && !element.hasAttribute('data-live-region')
     )
     const previousOverflow = document.body.style.overflow
 

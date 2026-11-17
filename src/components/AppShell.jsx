@@ -2,8 +2,10 @@ import { ArrowLeftRight, ChartPie, LayoutDashboard, LogOut, Menu, Wallet, Target
 import { Suspense, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../context/useAuth'
+import { RouteErrorBoundary } from './ErrorBoundary'
 import Logo from './Logo'
 import PageLoading from './PageLoading'
+import SlowServerNotice from './SlowServerNotice'
 import Button from './ui/Button'
 import Dialog from './ui/Dialog'
 import IconButton from './ui/IconButton'
@@ -55,9 +57,14 @@ export default function AppShell() {
       </header>
 
       <main id="main" className="app-shell__main" tabIndex={-1}>
-        <Suspense fallback={<PageLoading />}>
-          <Outlet />
-        </Suspense>
+        <SlowServerNotice />
+        {/* A page that fails to render, or whose code doesn't download, shows a message
+            with Try again here; the navigation keeps working (US-57). */}
+        <RouteErrorBoundary>
+          <Suspense fallback={<PageLoading />}>
+            <Outlet />
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
 
       {menuOpen && (

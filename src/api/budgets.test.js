@@ -53,13 +53,13 @@ describe('budgets API', () => {
     expect(fetch.mock.calls[0][1].method).toBe('DELETE')
   })
 
-  it('turns a 409 into a conflict error with the API’s message', async () => {
+  it('turns a 409 into a conflict error with the app’s own message, not the API’s', async () => {
     respondWith(409, { error: 'You already have a budget for Food. Change that one instead.' })
 
     await expect(createBudget({ category: 'Food', limit_cents: 1 })).rejects.toMatchObject({
       kind: 'conflict',
       status: 409,
-      message: 'You already have a budget for Food. Change that one instead.',
+      message: 'That already exists.',
     })
   })
 })

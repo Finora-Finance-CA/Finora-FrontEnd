@@ -6,7 +6,8 @@ import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import Select from '../components/ui/Select'
-import { CATEGORIES, MAX_DESCRIPTION_LENGTH, MIN_DATE, TRANSACTION_TYPES } from './constants'
+import { CATEGORIES, MAX_DATE, MAX_DESCRIPTION_LENGTH, MIN_DATE, TRANSACTION_TYPES } from './constants'
+import { characterCount } from '../validation/rules'
 import { useTransactionForm } from './useTransactionForm'
 import './TransactionForm.css'
 
@@ -62,7 +63,7 @@ export default function TransactionForm({
   // don't include it.
   const idPrefix = useId()
   const id = (field) => `${idPrefix}-${field}`
-  const descriptionLength = values.description.trim().length
+  const descriptionLength = characterCount(values.description.trim())
 
   return (
     <form className="transaction-form" onSubmit={handleSubmit} noValidate>
@@ -98,7 +99,7 @@ export default function TransactionForm({
       </Field>
 
       <Field id={id('date')} label="Date" error={errors.date}>
-        {(controlProps) => <Input {...controlProps} {...fieldProps('date')} type="date" min={MIN_DATE} />}
+        {(controlProps) => <Input {...controlProps} {...fieldProps('date')} type="date" min={MIN_DATE} max={MAX_DATE} />}
       </Field>
 
       {fields.includes('category') && (

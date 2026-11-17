@@ -52,9 +52,9 @@ describe('login page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
 
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Enter your email.')
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Email is required.')
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('Enter your password.')
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('Password is required.')
     expect(screen.getByLabelText('Email')).toHaveFocus()
     expect(fakeAuth.signInWithPassword).not.toHaveBeenCalled()
   })
@@ -65,7 +65,7 @@ describe('login page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
 
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Enter a valid email address, like name@example.com.')
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Email must be a valid email address, for example name@example.com.')
     fill({ email: 'me@example.com' })
     expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-invalid')
   })
@@ -176,7 +176,7 @@ describe('register page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
-      'At least 8 characters. Use at least 8 characters.'
+      'At least 8 characters. Password must be at least 8 characters.'
     )
     expect(screen.getByLabelText('Password')).toHaveFocus()
     expect(fakeAuth.signUp).not.toHaveBeenCalled()
@@ -233,5 +233,45 @@ describe('register page', () => {
     )
     expect(screen.getByLabelText('Password')).toHaveFocus()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('inline errors on the auth forms (US-58)', () => {
+  it('checks the email when the user leaves the field, not before', async () => {
+    await showPage()
+    const email = screen.getByLabelText('Email')
+
+    fireEvent.blur(email)
+    expect(email).not.toHaveAttribute('aria-invalid')
+
+    fill({ email: 'name@example' })
+    expect(email).not.toHaveAttribute('aria-invalid')
+    fireEvent.blur(email)
+
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    expect(email).toHaveAccessibleDescription('Email must be a valid email address, for example name@example.com.')
+    expect(fakeAuth.signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('checks a new password’s length on blur when registering', async () => {
+    await showPage('/register')
+    const password = screen.getByLabelText('Password')
+
+    fill({ password: 'short' })
+    fireEvent.blur(password)
+
+    expect(password).toHaveAccessibleDescription('At least 8 characters. Password must be at least 8 characters.')
+  })
+
+  it('keeps what was typed when logging in fails', async () => {
+    fakeAuth.signInWithPassword.mockResolvedValue({ data: {}, error: { code: 'invalid_credentials' } })
+    await showPage()
+    fill({ email: 'me@example.com', password: 'wrong-password' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password.')
+    expect(screen.getByLabelText('Email')).toHaveValue('me@example.com')
+    expect(screen.getByLabelText('Password')).toHaveValue('wrong-password')
   })
 })
