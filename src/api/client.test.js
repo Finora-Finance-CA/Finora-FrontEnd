@@ -230,3 +230,13 @@ describe('slow requests (US-57)', () => {
     expect(isWaitingOnSlowRequest()).toBe(false)
   })
 })
+
+describe('caching (US-59)', () => {
+  it('never lets the browser keep or reuse an answer, which is one user’s data', async () => {
+    const fetch = respondWith(200, { transactions: [] })
+
+    await apiRequest('/api/transactions')
+
+    expect(fetch.mock.calls[0][1]).toMatchObject({ cache: 'no-store' })
+  })
+})

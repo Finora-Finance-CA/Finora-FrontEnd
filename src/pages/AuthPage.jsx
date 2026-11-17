@@ -9,7 +9,7 @@ import Card from '../components/ui/Card';
 import Field from '../components/ui/Field';
 import IconButton from '../components/ui/IconButton';
 import Input from '../components/ui/Input';
-import { useAuth } from '../context/useAuth';
+import { SIGNED_OUT_MESSAGES, useAuth } from '../context/useAuth';
 import { supabase } from '../lib/supabase';
 import { useFormFields } from '../validation/useFormFields';
 import { MIN_PASSWORD_LENGTH, validateEmail, validatePassword } from '../validation/rules';
@@ -61,8 +61,10 @@ function AuthPage({ mode }) {
     const copy = COPY[mode];
     const navigate = useNavigate();
     const location = useLocation();
-    const redirectTo = location.state?.from?.pathname || '/transactions';
-    const { sessionExpired } = useAuth();
+    // Back to the page the user was sent here from, with its search and filters.
+    const from = location.state?.from;
+    const redirectTo = from?.pathname ? `${from.pathname}${from.search ?? ''}` : '/transactions';
+    const { signedOutReason } = useAuth();
     const { values, errors, fieldProps, validateAll, showErrors } = useFormFields({
         initialValues: { email: '', password: '' },
         fields: FIELDS,
@@ -126,8 +128,8 @@ function AuthPage({ mode }) {
                     <p className="auth-card__subtitle">{copy.subtitle}</p>
                 </div>
 
-                {sessionExpired && !isRegister && (
-                    <Alert tone="info">Your session expired, please log in again.</Alert>
+                {signedOutReason && !isRegister && (
+                    <Alert tone="info">{SIGNED_OUT_MESSAGES[signedOutReason]}</Alert>
                 )}
 
                 <form className="auth-card__form" onSubmit={handleSubmit} noValidate>

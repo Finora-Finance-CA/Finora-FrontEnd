@@ -59,7 +59,9 @@ export function ToastProvider({ children }) {
     return () => timers.forEach((timer) => clearTimeout(timer))
   }, [])
 
-  const value = useMemo(() => ({ showToast }), [showToast])
+  const clearToasts = useCallback(() => setToasts([]), [])
+
+  const value = useMemo(() => ({ showToast, clearToasts }), [showToast, clearToasts])
 
   function handleBlur(event) {
     if (!event.currentTarget.contains(event.relatedTarget)) setIsPaused(false)
