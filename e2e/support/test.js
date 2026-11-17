@@ -18,10 +18,12 @@ export const SESSION_STORAGE_KEY = 'sb-localhost-auth-token'
 
 export const test = base.extend({
   signedIn: [true, { option: true }],
+  // Passed to MockBackend, e.g. test.use({ backendOptions: { transactions, latencyMs } }).
+  backendOptions: [{}, { option: true }],
 
   backend: [
-    async ({ page, baseURL, signedIn }, use) => {
-      const backend = new MockBackend({ appOrigin: new URL(baseURL).origin })
+    async ({ page, baseURL, signedIn, backendOptions }, use) => {
+      const backend = new MockBackend({ appOrigin: new URL(baseURL).origin, ...backendOptions })
       await page.clock.setFixedTime(NOW)
       await page.route('**/*', (route) => backend.handle(route))
 

@@ -1,6 +1,6 @@
 import { CircleAlert, Receipt } from 'lucide-react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -12,14 +12,9 @@ import { useCategorySpending } from './useChartData'
 import { isCompactWidth, useContainerWidth } from './useContainerWidth'
 import './CategorySpendingChart.css'
 
-// "$1.2K" for the axis, where space is short. Display only; exact amounts use formatCents.
-const compactDollars = new Intl.NumberFormat('en-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-const axisLabel = (cents) => compactDollars.format(cents / 100)
+// The chart itself (Recharts) is its own chunk, so only the dashboard downloads it (US-62).
+const loadCategoryBars = () => import('./CategoryBars')
+const CategoryBars = lazy(loadCategoryBars)
 
 /**
  * The dashboard's spending by category (US-43): a bar per expense category for the
@@ -33,6 +28,11 @@ export default function CategorySpendingChart({ month }) {
   // room and the labels never run into each other. The exact amounts are in the tooltip
   // and the table.
   const compact = isCompactWidth(chartWidth)
+
+  // Start downloading the chart's code at once, alongside the data, rather than after it.
+  useEffect(() => {
+    loadCategoryBars().catch(() => {})
+  }, [])
 
   if (result.status === 'loading') {
     return (
@@ -86,39 +86,10 @@ export default function CategorySpendingChart({ month }) {
   return (
     <Card aria-busy={result.isRefreshing}>
       <div className="category-chart" aria-hidden="true" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart
-            data={categories}
-            layout="vertical"
-            margin={{ top: 4, right: compact ? 48 : 72, bottom: 4, left: 0 }}
-            accessibilityLayer={false}
-          >
-            <CartesianGrid horizontal={false} />
-            <XAxis
-              type="number"
-              tickFormatter={axisLabel}
-              tickLine={false}
-              axisLine={false}
-              tickCount={compact ? 3 : 5}
-            />
-            <YAxis type="category" dataKey="category" width={compact ? 96 : 110} tickLine={false} axisLine={false} />
-            <Tooltip
-              cursor={{ className: 'category-chart__cursor' }}
-              formatter={(cents) => [formatCents(cents), 'Spent']}
-              contentStyle={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text)',
-              }}
-              itemStyle={{ color: 'var(--text)' }}
-              labelStyle={{ color: 'var(--text-muted)' }}
-            />
-            <Bar dataKey="spent_cents" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-              <LabelList dataKey="spent_cents" position="right" formatter={compact ? axisLabel : formatCents} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {/* Holds the chart's space while its code arrives, so nothing jumps. */}
+        <Suspense fallback={<div className="category-chart__placeholder" />}>
+          <CategoryBars categories={categories} compact={compact} />
+        </Suspense>
       </div>
 
       {/* In a hidden box rather than a hidden table: a table ignores width: 1px and

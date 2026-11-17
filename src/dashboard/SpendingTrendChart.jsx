@@ -1,6 +1,6 @@
 import { CircleAlert, TrendingUp } from 'lucide-react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -24,13 +24,9 @@ function axisMonth(month, index, compact) {
   return !compact && (index === 0 || number === '01') ? `${name} ${year}` : name
 }
 
-const compactDollars = new Intl.NumberFormat('en-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-const axisDollars = (cents) => compactDollars.format(cents / 100)
+// The chart itself (Recharts) is its own chunk, so only the dashboard downloads it (US-62).
+const loadTrendBars = () => import('./TrendBars')
+const TrendBars = lazy(loadTrendBars)
 
 /**
  * The dashboard's spending over the last 6 months (US-44): a bar per month, ending at
@@ -43,6 +39,11 @@ export default function SpendingTrendChart({ month }) {
   // On a phone (US-56): month names only, every one shown, and no figure on top of each
   // bar, where six of them would run into each other. Tapping a bar shows its total.
   const compact = isCompactWidth(chartWidth)
+
+  // Start downloading the chart's code at once, alongside the data, rather than after it.
+  useEffect(() => {
+    loadTrendBars().catch(() => {})
+  }, [])
 
   if (result.status === 'loading') {
     return (
@@ -98,33 +99,10 @@ export default function SpendingTrendChart({ month }) {
   return (
     <Card aria-busy={result.isRefreshing}>
       <div className="trend-chart" aria-hidden="true" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            data={data}
-            margin={{ top: compact ? 8 : 24, right: 8, bottom: 4, left: 0 }}
-            accessibilityLayer={false}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} interval={0} />
-            <YAxis tickFormatter={axisDollars} tickLine={false} axisLine={false} width={compact ? 48 : 64} />
-            <Tooltip
-              cursor={{ className: 'trend-chart__cursor' }}
-              labelFormatter={(_, payload) => (payload?.[0] ? formatMonth(payload[0].payload.month) : '')}
-              formatter={(cents) => [formatCents(cents), 'Spent']}
-              contentStyle={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text)',
-              }}
-              itemStyle={{ color: 'var(--text)' }}
-              labelStyle={{ color: 'var(--text-muted)' }}
-            />
-            <Bar dataKey="expense_cents" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-              {!compact && <LabelList dataKey="expense_cents" position="top" formatter={axisDollars} />}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {/* Holds the chart's space while its code arrives, so nothing jumps. */}
+        <Suspense fallback={<div className="trend-chart__placeholder" />}>
+          <TrendBars data={data} compact={compact} />
+        </Suspense>
       </div>
 
       {/* In a hidden box rather than a hidden table: a table ignores width: 1px and

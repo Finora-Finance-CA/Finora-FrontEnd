@@ -60,9 +60,17 @@ function addMonths(month, change) {
 }
 
 export class MockBackend {
-  constructor({ appOrigin }) {
+  /**
+   * @param {object} options
+   * @param {string} options.appOrigin The dev server's origin.
+   * @param {object[]} [options.transactions] Instead of the usual fixtures, e.g. 1,000 of them.
+   * @param {number} [options.latencyMs] Delay before each API answer, like a real network
+   *   and server. 0 by default.
+   */
+  constructor({ appOrigin, transactions, latencyMs = 0 }) {
     this.appOrigin = appOrigin
-    this.transactions = initialTransactions()
+    this.latencyMs = latencyMs
+    this.transactions = transactions ?? initialTransactions()
     this.budgets = initialBudgets()
     this.goals = initialGoals()
     this.nextId = 1000
@@ -78,6 +86,7 @@ export class MockBackend {
 
     if (url.origin === this.appOrigin && url.pathname.includes('/auth/v1/')) return this.auth(route, request, url)
     if (url.origin === this.appOrigin && (url.pathname.startsWith('/api/') || url.pathname === '/health')) {
+      if (this.latencyMs > 0) await new Promise((resolve) => setTimeout(resolve, this.latencyMs))
       return this.api(route, request, url)
     }
     if (url.origin === this.appOrigin) return route.continue()
