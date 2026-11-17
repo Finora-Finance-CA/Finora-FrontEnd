@@ -180,7 +180,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   /* Keeps a focused control clear of the sticky top bar on small screens. */
-  scroll-padding-top: calc(var(--topbar-h) + var(--space-4));
+  scroll-padding-top: calc(var(--topbar-h) + env(safe-area-inset-top) + var(--space-4));
 }
 
 body {
@@ -264,6 +264,10 @@ a {
   max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--page-pad);
+  /* Clear of the notch and rounded corners in landscape, and the home indicator. */
+  padding-right: max(var(--page-pad), env(safe-area-inset-right));
+  padding-bottom: max(var(--page-pad), env(safe-area-inset-bottom));
+  padding-left: max(var(--page-pad), env(safe-area-inset-left));
 }
 
 /* Shown while a page's code loads, or while the session is checked. */

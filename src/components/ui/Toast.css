@@ -2,8 +2,8 @@
    space or clicks; only the toasts do. */
 .toast-region {
   position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
+  right: max(var(--space-4), env(safe-area-inset-right));
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@
   pointer-events: none;
 
   @media (max-width: 767px) {
-    left: var(--space-4);
+    left: max(var(--space-4), env(safe-area-inset-left));
     max-width: none;
     align-items: stretch;
   }

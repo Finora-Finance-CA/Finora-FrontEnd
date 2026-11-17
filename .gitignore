@@ -25,3 +25,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# Browser tests (npm run e2e)
+/test-results/
+/playwright-report/
+/e2e-screenshots/
