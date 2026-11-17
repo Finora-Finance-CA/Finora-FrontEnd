@@ -268,6 +268,21 @@ Write tests with `test` and `expect` from `e2e/support/test.js`: pages open sign
 
 `e2e/performance.spec.js` (US-62) runs in its own Playwright project against a production build (`vite build` into `dist-e2e`, gitignored, served by `vite preview` on port 5175), because load times only mean something for the built app. With 1,000 transactions and the mock waiting 150 ms before every answer, the transactions page and the dashboard must show their data within 2 seconds. It also checks that pages ask for each thing once and stop fetching, and that only the dashboard downloads the chart library: the charts' Recharts code (`CategoryBars.jsx`, `TrendBars.jsx`) is its own lazy chunk, which the dashboard starts downloading alongside its data. The API side is checked with `npm run bench` in Finora-API.
 
+`e2e/mainFlow.spec.js` (US-61) runs the main flow end to end, on a desktop and a 375px phone: register, add an expense, set a budget for its category, and check the dashboard (summary cards, budget alert and progress, both charts), then log out and back in and find it all still there. The mock keeps an account per user, so a new account starts empty and sees only its own data. The steps live in `e2e/flows/mainFlow.js`, shared with the live run below.
+
+### Live browser test
+`npm run e2e:live` runs the same main flow against the real app on this machine: your front-end, your API, the database and Supabase Auth. Nothing is mocked, so it is run by hand only, never in CI (it has its own config, `playwright.live.config.js`, and folder, `e2e-live/`). It registers a new `e2e+<timestamp>@<domain>` account for each of a desktop and a phone run. If Supabase's **Confirm email** is on, it logs in with `E2E_EMAIL` and `E2E_PASSWORD` instead, checks everything against that account's own figures, and puts the account back as it was: its expense is deleted and its Food limit removed, or restored if it had one.
+
+Optional settings go in `.env.e2e` (gitignored, like every `.env.*`):
+
+| Variable | Use |
+| --- | --- |
+| `E2E_EMAIL`, `E2E_PASSWORD` | An existing, confirmed account, used only if new accounts must confirm their email. |
+| `E2E_EMAIL_DOMAIN` | The new accounts' domain. Defaults to `E2E_EMAIL`'s domain, else `example.com`. Use one Supabase accepts. |
+| `E2E_BASE_URL` | The front-end. Defaults to `http://localhost:5173`; anything not on localhost is refused. |
+
+The test also fails straight away if the app's API requests go anywhere but this machine (for example if `VITE_API_URL` points at the deployed API). The accounts it registers stay in Supabase Auth; delete them under **Authentication**, **Users** (search for `e2e+`). Traces, screenshots and videos of a failed run are in `test-results/e2e-live`, and the report is `npx playwright show-report playwright-report-live`.
+
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request, and the browser tests (`npm run e2e`) in a second job, with Chromium cached per Playwright version. Neither needs secrets. A pull request should only be merged when both jobs pass.
 

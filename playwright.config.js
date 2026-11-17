@@ -43,7 +43,9 @@ export default defineConfig({
     locale: 'en-CA',
     colorScheme: 'light',
     serviceWorkers: 'block',
+    // Kept only when a test fails, in test-results/e2e (and uploaded by CI).
     trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
