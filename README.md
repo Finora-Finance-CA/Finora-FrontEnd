@@ -266,6 +266,8 @@ Playwright runs the app in Chromium at phone, tablet and desktop widths (`e2e/`,
 
 Write tests with `test` and `expect` from `e2e/support/test.js`: pages open signed in unless a test says `test.use({ signedIn: false })`, `backend` gives the mock's data, and `expectNoHorizontalScroll(page)` checks a page fits. `e2e/responsive.spec.js` saves a screenshot of every page at 320, 375, 768 and 1280px to `e2e-screenshots/<width>/` (gitignored) for review.
 
+`e2e/performance.spec.js` (US-62) runs in its own Playwright project against a production build (`vite build` into `dist-e2e`, gitignored, served by `vite preview` on port 5175), because load times only mean something for the built app. With 1,000 transactions and the mock waiting 150 ms before every answer, the transactions page and the dashboard must show their data within 2 seconds. It also checks that pages ask for each thing once and stop fetching, and that only the dashboard downloads the chart library: the charts' Recharts code (`CategoryBars.jsx`, `TrendBars.jsx`) is its own lazy chunk, which the dashboard starts downloading alongside its data. The API side is checked with `npm run bench` in Finora-API.
+
 ### CI
 `.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request, and the browser tests (`npm run e2e`) in a second job, with Chromium cached per Playwright version. Neither needs secrets. A pull request should only be merged when both jobs pass.
 

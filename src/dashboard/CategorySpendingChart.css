@@ -32,3 +32,8 @@
 .category-chart .recharts-text {
   font-variant-numeric: tabular-nums;
 }
+
+/* Where the chart goes while its code downloads: the same height, so nothing moves. */
+.category-chart__placeholder {
+  height: 240px;
+}

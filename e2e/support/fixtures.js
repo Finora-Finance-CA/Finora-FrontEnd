@@ -87,3 +87,34 @@ export function initialGoals() {
     updated_at: `2026-10-0${3 - i}T00:00:00.000Z`,
   }))
 }
+
+// A year of transactions for the performance test (US-62): `count` of them, every
+// category, income and expenses, the same set on every run. Dated in the 12 months up to
+// NOW, so the dashboard's month and trend have plenty in them.
+export function manyTransactions(count = 1000) {
+  const categories = ['Food', 'Transportation', 'Housing', 'Entertainment', 'Other']
+  const descriptions = {
+    Food: ['Groceries', 'Coffee', 'Lunch out', 'Bakery'],
+    Transportation: ['Gas', 'Transit pass', 'Parking'],
+    Housing: ['Rent', 'Hydro bill', 'Internet'],
+    Entertainment: ['Movie night', 'Concert tickets', 'Streaming'],
+    Other: ['Phone bill', 'Haircut', 'Pharmacy'],
+  }
+  const day = 24 * 60 * 60 * 1000
+  return Array.from({ length: count }, (_, i) => {
+    const date = new Date(NOW.getTime() - ((i * 7919) % 365) * day).toISOString().slice(0, 10)
+    const income = i % 12 === 0
+    const category = income ? null : categories[i % categories.length]
+    return {
+      id: String(i + 1),
+      user_id: USER.id,
+      amount_cents: income ? 150000 + ((i * 131) % 50000) : 300 + ((i * 7907) % 25000),
+      date,
+      type: income ? 'income' : 'expense',
+      category,
+      description: income ? 'Salary' : descriptions[category][i % descriptions[category].length],
+      created_at: new Date(NOW.getTime() - i * 1000).toISOString(),
+      updated_at: new Date(NOW.getTime() - i * 1000).toISOString(),
+    }
+  })
+}
