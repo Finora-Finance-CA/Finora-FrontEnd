@@ -1,6 +1,6 @@
 import { CircleAlert, TrendingUp } from 'lucide-react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -9,25 +9,24 @@ import Skeleton from '../components/ui/Skeleton'
 import { formatMonth } from '../summary/months'
 import { formatCents } from '../transactions/money'
 import { useSpendingTrend } from './useChartData'
+import { isCompactWidth, useContainerWidth } from './useContainerWidth'
 import './SpendingTrendChart.css'
 
 const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 // "Jun" under each bar, with the year on the first bar and on January, so a range that
-// crosses a new year is clear. From the YYYY-MM text, never a Date, like months.js.
-function axisMonth(month, index) {
+// crosses a new year is clear. When the chart is narrow, the month only, so all six fit
+// without overlapping (the tooltip and the table give the full month). From the YYYY-MM
+// text, never a Date, like months.js.
+function axisMonth(month, index, compact) {
   const [year, number] = month.split('-')
   const name = MONTH_ABBREVIATIONS[Number(number) - 1]
-  return index === 0 || number === '01' ? `${name} ${year}` : name
+  return !compact && (index === 0 || number === '01') ? `${name} ${year}` : name
 }
 
-const compactDollars = new Intl.NumberFormat('en-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-const axisDollars = (cents) => compactDollars.format(cents / 100)
+// The chart itself (Recharts) is its own chunk, so only the dashboard downloads it (US-62).
+const loadTrendBars = () => import('./TrendBars')
+const TrendBars = lazy(loadTrendBars)
 
 /**
  * The dashboard's spending over the last 6 months (US-44): a bar per month, ending at
@@ -36,6 +35,15 @@ const axisDollars = (cents) => compactDollars.format(cents / 100)
  */
 export default function SpendingTrendChart({ month }) {
   const result = useSpendingTrend(month)
+  const [chartRef, chartWidth] = useContainerWidth()
+  // On a phone (US-56): month names only, every one shown, and no figure on top of each
+  // bar, where six of them would run into each other. Tapping a bar shows its total.
+  const compact = isCompactWidth(chartWidth)
+
+  // Start downloading the chart's code at once, alongside the data, rather than after it.
+  useEffect(() => {
+    loadTrendBars().catch(() => {})
+  }, [])
 
   if (result.status === 'loading') {
     return (
@@ -86,55 +94,40 @@ export default function SpendingTrendChart({ month }) {
     )
   }
 
-  const data = months.map((item, index) => ({ ...item, label: axisMonth(item.month, index) }))
+  const data = months.map((item, index) => ({ ...item, label: axisMonth(item.month, index, compact) }))
 
   return (
     <Card aria-busy={result.isRefreshing}>
-      <div className="trend-chart" aria-hidden="true">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} margin={{ top: 24, right: 8, bottom: 4, left: 0 }} accessibilityLayer={false}>
-            <CartesianGrid vertical={false} />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} />
-            <YAxis tickFormatter={axisDollars} tickLine={false} axisLine={false} width={64} />
-            <Tooltip
-              cursor={{ className: 'trend-chart__cursor' }}
-              labelFormatter={(_, payload) => (payload?.[0] ? formatMonth(payload[0].payload.month) : '')}
-              formatter={(cents) => [formatCents(cents), 'Spent']}
-              contentStyle={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text)',
-              }}
-              itemStyle={{ color: 'var(--text)' }}
-              labelStyle={{ color: 'var(--text-muted)' }}
-            />
-            <Bar dataKey="expense_cents" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-              <LabelList dataKey="expense_cents" position="top" formatter={axisDollars} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="trend-chart" aria-hidden="true" ref={chartRef}>
+        {/* Holds the chart's space while its code arrives, so nothing jumps. */}
+        <Suspense fallback={<div className="trend-chart__placeholder" />}>
+          <TrendBars data={data} compact={compact} />
+        </Suspense>
       </div>
 
-      <table className="visually-hidden">
-        <caption>
-          Spending from {first ? formatMonth(first) : ''} to {formatMonth(month)}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Month</th>
-            <th scope="col">Spent</th>
-          </tr>
-        </thead>
-        <tbody>
-          {months.map(({ month: itemMonth, expense_cents }) => (
-            <tr key={itemMonth}>
-              <th scope="row">{formatMonth(itemMonth)}</th>
-              <td>{formatCents(expense_cents)}</td>
+      {/* In a hidden box rather than a hidden table: a table ignores width: 1px and
+          would widen the page on a phone. */}
+      <div className="visually-hidden">
+        <table>
+          <caption>
+            Spending from {first ? formatMonth(first) : ''} to {formatMonth(month)}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col">Spent</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {months.map(({ month: itemMonth, expense_cents }) => (
+              <tr key={itemMonth}>
+                <th scope="row">{formatMonth(itemMonth)}</th>
+                <td>{formatCents(expense_cents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Card>
   )
 }

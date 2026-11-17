@@ -1,14 +1,15 @@
-import { CircleAlert, CircleCheck } from 'lucide-react'
+import { CircleAlert, CircleCheck, Info } from 'lucide-react'
 import './Alert.css'
 
-const ICONS = { error: CircleAlert, success: CircleCheck }
+const ICONS = { error: CircleAlert, success: CircleCheck, info: Info }
 
 /**
  * A message in a tinted box with an icon, so its meaning never rests on colour alone.
  * An error is announced straight away (role="alert") unless another role is given.
  *
  * @param {object} props
- * @param {'error'|'success'} [props.tone='error']
+ * @param {'error'|'success'|'info'} [props.tone='error'] Info is for something the user
+ *   should know that isn't a problem, e.g. why they were sent to the login page.
  */
 export default function Alert({ tone = 'error', role = tone === 'error' ? 'alert' : 'status', className, children }) {
   const Icon = ICONS[tone]

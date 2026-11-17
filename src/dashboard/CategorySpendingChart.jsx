@@ -1,6 +1,6 @@
 import { CircleAlert, Receipt } from 'lucide-react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -9,16 +9,12 @@ import Skeleton from '../components/ui/Skeleton'
 import { formatMonth } from '../summary/months'
 import { formatCents } from '../transactions/money'
 import { useCategorySpending } from './useChartData'
+import { isCompactWidth, useContainerWidth } from './useContainerWidth'
 import './CategorySpendingChart.css'
 
-// "$1.2K" for the axis, where space is short. Display only; exact amounts use formatCents.
-const compactDollars = new Intl.NumberFormat('en-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-const axisLabel = (cents) => compactDollars.format(cents / 100)
+// The chart itself (Recharts) is its own chunk, so only the dashboard downloads it (US-62).
+const loadCategoryBars = () => import('./CategoryBars')
+const CategoryBars = lazy(loadCategoryBars)
 
 /**
  * The dashboard's spending by category (US-43): a bar per expense category for the
@@ -27,6 +23,16 @@ const axisLabel = (cents) => compactDollars.format(cents / 100)
  */
 export default function CategorySpendingChart({ month }) {
   const result = useCategorySpending(month)
+  const [chartRef, chartWidth] = useContainerWidth()
+  // On a phone (US-56): short figures ("$1.8K") and narrower margins, so the bars keep
+  // room and the labels never run into each other. The exact amounts are in the tooltip
+  // and the table.
+  const compact = isCompactWidth(chartWidth)
+
+  // Start downloading the chart's code at once, alongside the data, rather than after it.
+  useEffect(() => {
+    loadCategoryBars().catch(() => {})
+  }, [])
 
   if (result.status === 'loading') {
     return (
@@ -79,59 +85,40 @@ export default function CategorySpendingChart({ month }) {
 
   return (
     <Card aria-busy={result.isRefreshing}>
-      <div className="category-chart" aria-hidden="true">
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart
-            data={categories}
-            layout="vertical"
-            margin={{ top: 4, right: 72, bottom: 4, left: 0 }}
-            accessibilityLayer={false}
-          >
-            <CartesianGrid horizontal={false} />
-            <XAxis type="number" tickFormatter={axisLabel} tickLine={false} axisLine={false} />
-            <YAxis type="category" dataKey="category" width={110} tickLine={false} axisLine={false} />
-            <Tooltip
-              cursor={{ className: 'category-chart__cursor' }}
-              formatter={(cents) => [formatCents(cents), 'Spent']}
-              contentStyle={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text)',
-              }}
-              itemStyle={{ color: 'var(--text)' }}
-              labelStyle={{ color: 'var(--text-muted)' }}
-            />
-            <Bar dataKey="spent_cents" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-              <LabelList dataKey="spent_cents" position="right" formatter={formatCents} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="category-chart" aria-hidden="true" ref={chartRef}>
+        {/* Holds the chart's space while its code arrives, so nothing jumps. */}
+        <Suspense fallback={<div className="category-chart__placeholder" />}>
+          <CategoryBars categories={categories} compact={compact} />
+        </Suspense>
       </div>
 
-      <table className="visually-hidden">
-        <caption>Spending by category in {formatMonth(month)}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Category</th>
-            <th scope="col">Spent</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map(({ category, spent_cents }) => (
-            <tr key={category}>
-              <th scope="row">{category}</th>
-              <td>{formatCents(spent_cents)}</td>
+      {/* In a hidden box rather than a hidden table: a table ignores width: 1px and
+          would widen the page on a phone. */}
+      <div className="visually-hidden">
+        <table>
+          <caption>Spending by category in {formatMonth(month)}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col">Spent</th>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th scope="row">Total</th>
-            <td>{formatCents(total)}</td>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {categories.map(({ category, spent_cents }) => (
+              <tr key={category}>
+                <th scope="row">{category}</th>
+                <td>{formatCents(spent_cents)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Total</th>
+              <td>{formatCents(total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </Card>
   )
 }

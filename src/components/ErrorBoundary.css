@@ -1,0 +1,20 @@
+/* The whole-screen version, shown when nothing else can render. */
+.error-boundary--app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-5) var(--space-4);
+
+  > .card {
+    width: 100%;
+    max-width: var(--auth-w);
+  }
+}
+
+.error-boundary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}

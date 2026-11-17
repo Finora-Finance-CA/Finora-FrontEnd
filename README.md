@@ -72,9 +72,10 @@ Each page is lazy-loaded (`React.lazy` in `App.jsx`), so the first download only
 
 ## How auth works
 - `src/lib/supabase.js` creates the one Supabase client for the app. Import it from here; never create another.
-- `src/context/AuthContext.jsx` provides the session to the app (`AuthProvider`). Read it with `useAuth()` from `src/context/useAuth.js`, which returns `{ session, user, loading, signOut }`. The provider reads the saved session on load and listens for sign-in, sign-out and token refresh, so sessions survive a page refresh.
-- `src/components/ProtectedRoute.jsx` sends signed-out users to `/login`, and back to the page they wanted after logging in. Wrap any new private page in it.
-- `src/components/GuestRoute.jsx` sends signed-in users away from `/login` and `/register`.
+- `src/context/AuthContext.jsx` provides the session to the app (`AuthProvider`). Read it with `useAuth()` from `src/context/useAuth.js`, which returns `{ session, user, loading, signedOutReason, signOut }`. The provider reads the saved session on load and listens for sign-in, sign-out and token refresh, so sessions survive a page refresh (US-59). If the saved session can't be restored (Supabase reports an error, reading it throws, or there's no answer within `SESSION_RESTORE_TIMEOUT_MS`, 8 seconds), it clears the broken session and the login page says "We couldn't restore your session, please log in again." `signedOutReason` is `'restore_failed'`, `'expired'` (the API answered 401) or `null`.
+- `src/components/ProtectedRoute.jsx` waits while the session is restored (so a refresh stays on the same page, with the search and filters in its URL), sends signed-out users to `/login`, and back to the page and query string they wanted after logging in. It's keyed by the user, so a different user signing in starts every signed-in page again with their own data. Wrap any new private page in it.
+- `src/components/GuestRoute.jsx` sends signed-in users away from `/login` and `/register`, to the page they were sent from.
+- **Logging out leaves nothing behind:** every page's data lives in its own hooks inside `ProtectedRoute`, so it's dropped on sign-out; toasts are cleared when the user changes (`App.jsx`); API answers are fetched with `cache: 'no-store'`, so the browser never keeps one user's data for the next; and Supabase removes its saved session. Logging back in loads everything again from the API.
 - `src/pages/AuthPage.jsx` handles both login and register. The `mode` prop comes from the route. It checks the fields before sending (both filled in, an email that looks like one, and at least 8 characters to register), shows each problem under its field, and turns Supabase's errors into plain messages with `authErrorMessage` (`src/auth/authErrors.js`), so Supabase's own text never reaches the screen.
 - `src/auth/token.js` exports `getAuthToken()`, which returns the current Supabase access token. It is `async`, so always `await` it.
 - `src/api/client.js` (`apiRequest`) adds the token to every API request automatically, and `src/api/url.js` builds its URL from `VITE_API_URL`. Use it for all API calls rather than calling `fetch` directly.
@@ -211,10 +212,9 @@ or visit `/goals`.
 - Amounts are converted to integer cents before being sent to the API.
 
 ### Progress
-- Each goal displays its saved amount, target amount and percentage complete.
+- Each goal shows its saved amount, its target, the percent saved, what's left ("$35.50 to go") and its target date.
+- The percent is worked out from the integer cents with whole-number maths (`goalPercent` in `src/goals/progress.js`): rounded down and capped at 100, so $14.50 of $50.00 shows 29%. A goal at or past its target says "Goal reached".
 - Progress updates after a contribution is saved.
-- The progress bar fills up to 100%; the percentage can exceed 100%
-  when savings exceed the target.
 
 ### API
 All requests require authentication. Users can only access their own goals.
@@ -230,11 +230,15 @@ All requests require authentication. Users can only access their own goals.
 ### Main files
 | File | Purpose |
 | --- | --- |
-| `src/pages/GoalsPage.jsx` | Goal cards, create/edit forms, deletion confirmation and progress |
-| `src/pages/GoalsPage.css` | Goal page styles |
-| `src/pages/ContributionDialog.jsx` | Contribution form |
+| `src/pages/GoalsPage.jsx` | The page: header, loading, error with Try again, empty state, goal list and dialogs |
+| `src/goals/GoalCard.jsx` | One goal's figures, progress and actions |
+| `src/goals/GoalFormDialog.jsx` | Add and edit form |
+| `src/goals/ContributionDialog.jsx` | Contribution form |
+| `src/goals/DeleteGoalDialog.jsx` | Delete confirmation |
+| `src/goals/useGoals.js` | Loads the goals and keeps the list current |
+| `src/goals/progress.js` | Percent saved, with integer maths |
+| `src/goals/Goals.css` | Goal styles (tokens only) |
 | `src/api/goals.js` | Authenticated API calls for goals and contributions |
-| `src/components/ui/ProgressBar.jsx` | Reusable progress bar |
 
 ## Tests
 
@@ -252,14 +256,48 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 - `src/api/url.test.js` covers where requests go with and without `VITE_API_URL`, `src/lib/staleChunks.test.js` the reload after a redeploy, and `src/deployment.test.js` that `vercel.json` serves the app for every route in `App.jsx` but never for `/assets/` or `/api/` paths.
 - `setup.js` also gives jsdom a do-nothing `ResizeObserver`, which Recharts needs. Charts don't draw in tests, so dashboard tests check each chart's visually hidden table instead.
 
+### Browser tests
+```bash
+npx playwright install chromium   # once, to download the browser
+npm run e2e
+```
+
+Playwright runs the app in Chromium at phone, tablet and desktop widths (`e2e/`, `*.spec.js`; Vitest only reads `src/**/*.test.js(x)`, so neither runs the other's files). It starts its own dev server on port 5174 with the API and Supabase pointed at that server, and `e2e/support/mockBackend.js` answers every API and Supabase Auth request from realistic fixtures (`e2e/support/fixtures.js`: six months of transactions, budgets under, near and over their limits, goals with contributions). Nothing reaches the real API, Supabase or database: any other request is blocked and fails the test. The clock is fixed at 15 November 2026, so figures never change.
+
+Write tests with `test` and `expect` from `e2e/support/test.js`: pages open signed in unless a test says `test.use({ signedIn: false })`, `backend` gives the mock's data, and `expectNoHorizontalScroll(page)` checks a page fits. `e2e/responsive.spec.js` saves a screenshot of every page at 320, 375, 768 and 1280px to `e2e-screenshots/<width>/` (gitignored) for review.
+
+`e2e/performance.spec.js` (US-62) runs in its own Playwright project against a production build (`vite build` into `dist-e2e`, gitignored, served by `vite preview` on port 5175), because load times only mean something for the built app. With 1,000 transactions and the mock waiting 150 ms before every answer, the transactions page and the dashboard must show their data within 2 seconds. It also checks that pages ask for each thing once and stop fetching, and that only the dashboard downloads the chart library: the charts' Recharts code (`CategoryBars.jsx`, `TrendBars.jsx`) is its own lazy chunk, which the dashboard starts downloading alongside its data. The API side is checked with `npm run bench` in Finora-API.
+
+`e2e/mainFlow.spec.js` (US-61) runs the main flow end to end, on a desktop and a 375px phone: register, add an expense, set a budget for its category, and check the dashboard (summary cards, budget alert and progress, both charts), then log out and back in and find it all still there. The mock keeps an account per user, so a new account starts empty and sees only its own data. The steps live in `e2e/flows/mainFlow.js`, shared with the live run below.
+
+### Live browser test
+`npm run e2e:live` runs the same main flow against the real app on this machine: your front-end, your API, the database and Supabase Auth. Nothing is mocked, so it is run by hand only, never in CI (it has its own config, `playwright.live.config.js`, and folder, `e2e-live/`). It registers a new `e2e+<timestamp>@<domain>` account for each of a desktop and a phone run. If Supabase's **Confirm email** is on, it logs in with `E2E_EMAIL` and `E2E_PASSWORD` instead, checks everything against that account's own figures, and puts the account back as it was: its expense is deleted and its Food limit removed, or restored if it had one.
+
+Optional settings go in `.env.e2e` (gitignored, like every `.env.*`):
+
+| Variable | Use |
+| --- | --- |
+| `E2E_EMAIL`, `E2E_PASSWORD` | An existing, confirmed account, used only if new accounts must confirm their email. |
+| `E2E_EMAIL_DOMAIN` | The new accounts' domain. Defaults to `E2E_EMAIL`'s domain, else `example.com`. Use one Supabase accepts. |
+| `E2E_BASE_URL` | The front-end. Defaults to `http://localhost:5173`; anything not on localhost is refused. |
+
+The test also fails straight away if the app's API requests go anywhere but this machine (for example if `VITE_API_URL` points at the deployed API). The accounts it registers stay in Supabase Auth; delete them under **Authentication**, **Users** (search for `e2e+`). Traces, screenshots and videos of a failed run are in `test-results/e2e-live`, and the report is `npx playwright show-report playwright-report-live`.
+
 ### CI
-`.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request. It needs no secrets. A pull request should only be merged when all four pass.
+`.github/workflows/test.yml` runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on Node 22 for every push and pull request, and the browser tests (`npm run e2e`) in a second job, with Chromium cached per Playwright version. Neither needs secrets. A pull request should only be merged when both jobs pass.
 
 ## Adding a protected page
 1. Create the page in `src/pages`. Wrap it in `<div className="page">` (the shared layout in `index.css`) and start it with `<PageHeader title="..." />`; the app shell already provides `<main id="main">`.
 2. Add a lazy route in `App.jsx` inside the layout route that renders `<AppShell />`, and add it to `LINKS` in `AppShell.jsx` (with a lucide icon) if it belongs in the main navigation.
 3. Call the API with `apiRequest` from `src/api/client.js`.
 4. Get the current user with `useAuth()` if the page needs it.
+
+## Validation, errors and feedback
+- **One set of rules** (`src/validation/rules.js`) mirrors the API's (see the API's "Validation rules"), with the same labels and messages, e.g. "Amount must be greater than 0." Money typed in dollars becomes integer cents through `parseDollarsToCents` (`src/transactions/money.js`), with string maths only.
+- **Every form uses `useFormFields`** (`src/validation/useFormFields.js`): a field the user changed is checked when they leave it; Save checks every field, sends nothing until all are valid and focuses the first invalid one; after that, a field is checked again as it's typed in. Errors show under their field through `Field`, which sets `aria-invalid` and `aria-describedby`. The API's 400 messages go under their fields through `mapApiFieldErrors` (`src/validation/apiErrors.js`); anything else from the API is never shown. A failed save keeps everything typed.
+- **Success:** every save and delete shows a short toast (`useToast()` from `src/components/ui/useToast.js`, rendered by `ToastProvider` in `App.jsx`): one polite live region, closes after 5 seconds, stays while hovered or focused, never takes focus.
+- **Failures:** `src/api/client.js` turns every failure into a plain-language message (offline, unreachable, timed out after 65 seconds, server error, unexpected response); text from the API's `{ error }` is never shown. A 401 signs the user out and the login page says "Your session expired, please log in again." While any request has taken 5 seconds or more, the app shell says "Waking up the server, this can take up to a minute." (`SlowServerNotice`). Each page and panel shows its own error with **Try again** (`ErrorState`).
+- **Never a blank screen:** `ErrorBoundary` (`src/components/ErrorBoundary.jsx`) wraps the whole app, and each page inside the app shell, so the navigation keeps working. A page whose code fails to download says "You appear to be offline" when offline, and tries again by itself once the connection is back. Pages are loaded with `lazyPage` (`src/lib/lazyPage.js`) so a failed download can be tried again.
 
 ## UI system
 The look is set by tokens in `src/index.css`, and pages are built from the primitives in `src/components/ui`. Component stylesheets use the tokens only: no raw colours, font sizes, spacing, radii, shadows or durations. Inline styles are used only to pass dynamic values as CSS variables (category colours, a progress bar's fill).
@@ -269,7 +307,7 @@ The look is set by tokens in `src/index.css`, and pages are built from the primi
 - **Space and shape:** `--space-1` to `--space-9` (4, 8, 12, 16, 24, 32, 40, 48, 64px); radii 4, 6, 10 and 14px plus pills; shadows only on floating layers (`--shadow-popover`, `--shadow-overlay`).
 - **Motion:** 150ms (`--duration-fast`) for hover and menus, 200ms (`--duration-base`) for drawers and sheets, ease-out, transform and opacity only; all of it is off with `prefers-reduced-motion`.
 - **Touch and focus:** controls are at least 44px tall (`--control-h`); compact ones look 36px and keep a 44px hit area. Every control shows a 2px focus ring.
-- **Breakpoints:** 768px (table rows, drawer or sheet, toolbar) and 1024px (sidebar or top bar). Tested at 375, 768, 1024 and 1440px.
+- **Breakpoints:** 640px (transactions as cards, the add and edit drawer full screen, summary cards two across), 768px (table rows, drawer or sheet, toolbar) and 1024px (sidebar or top bar, summary cards three across). Charts switch to a compact layout under 480px of their own width (`useContainerWidth`). Safe areas (`env(safe-area-inset-*)`, with `viewport-fit=cover`) keep the top bar, pages, sheets and toasts clear of notches. The browser tests check every page at 320, 375, 768 and 1280px.
 
 | Primitive | Props |
 | --- | --- |
@@ -285,7 +323,8 @@ The look is set by tokens in `src/index.css`, and pages are built from the primi
 | `Dialog` | `title`, `onClose`, `variant` (dialog, drawer, sheet, nav), `canClose`, `initialFocusRef`, `returnFocusRef`, `fallbackFocusRef` |
 | `Card` | `as`, `padded` |
 | `Pill` | `colors` ({ light, dark } text and background) |
-| `Alert` | `tone` (error, success), `role` |
+| `Alert` | `tone` (error, success, info), `role` |
+| `ToastProvider` / `useToast` | `showToast(message)`: a short success message in the app's one live region |
 | `ProgressBar` | `value` (percent; the fill stops at 100), `label` (its accessible name), `valueText` (the real figure in words), `tone` (default, warning, danger) |
 | `Skeleton` | `shape` (text, short, amount, pill, figure) |
 | `EmptyState` | `icon`, `title`, `action`, and detail as children |

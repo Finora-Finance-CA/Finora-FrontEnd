@@ -14,6 +14,9 @@ const RETRY_AFTER_MS = 10_000
  */
 export function reloadOnStaleChunk({ target = window, storage, now = Date.now } = {}) {
   target.addEventListener('vite:preloadError', (event) => {
+    // Offline, a reload would only show the browser's own offline page. Let the error
+    // reach the error boundary instead, which says so and offers Try again (US-57).
+    if (target.navigator?.onLine === false) return
     try {
       // Read here, not as a default: even reading sessionStorage throws when the
       // browser blocks site data, and that mustn't stop the app from starting.

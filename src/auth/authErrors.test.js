@@ -23,7 +23,7 @@ describe('authErrorMessage', () => {
   it('puts an email Supabase rejects under the email field', () => {
     expect(authErrorMessage({ code: 'email_address_invalid' }, 'register')).toEqual({
       field: 'email',
-      message: 'Enter a valid email address, like name@example.com.',
+      message: 'Email must be a valid email address, for example name@example.com.',
     })
   })
 

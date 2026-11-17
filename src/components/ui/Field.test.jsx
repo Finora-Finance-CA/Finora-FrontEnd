@@ -27,10 +27,10 @@ describe('Field', () => {
   })
 
   it('links the hint and the error to the control, and marks it invalid', () => {
-    renderField({ hint: 'For example 12.50', error: 'Enter an amount.' })
+    renderField({ hint: 'For example 12.50', error: 'Amount is required.' })
 
     const input = screen.getByLabelText('Amount')
-    expect(input).toHaveAccessibleDescription('For example 12.50 Enter an amount.')
+    expect(input).toHaveAccessibleDescription('For example 12.50 Amount is required.')
     expect(input).toHaveAttribute('aria-invalid', 'true')
   })
 })

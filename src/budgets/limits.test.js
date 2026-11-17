@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_AMOUNT_CENTS } from '../transactions/constants'
-import { LIMIT_REQUIRED, parseLimitToCents } from './limits'
+import { parseLimitToCents } from './limits'
 
 describe('parseLimitToCents', () => {
   it.each([
@@ -18,19 +18,29 @@ describe('parseLimitToCents', () => {
     expect(parseLimitToCents(input)).toEqual({ cents, error: null })
   })
 
-  it.each(['', '   ', '0', '0.00', '-1', '-0.01', 'abc', '$', '1,00', '12abc', null, undefined])(
-    'rejects %j with the plain message',
-    (input) => {
-      expect(parseLimitToCents(input)).toEqual({ cents: null, error: LIMIT_REQUIRED })
-    }
-  )
+  it.each([
+    ['', 'Limit is required.'],
+    ['   ', 'Limit is required.'],
+    [null, 'Limit is required.'],
+    [undefined, 'Limit is required.'],
+    ['0', 'Limit must be greater than 0.'],
+    ['0.00', 'Limit must be greater than 0.'],
+    ['-1', 'Limit must be greater than 0.'],
+    ['-0.01', 'Limit must be greater than 0.'],
+    ['abc', 'Limit must be a number, for example 12.50.'],
+    ['$', 'Limit must be a number, for example 12.50.'],
+    ['1,00', 'Limit must be a number, for example 12.50.'],
+    ['12abc', 'Limit must be a number, for example 12.50.'],
+  ])('rejects %j with the shared message', (input, error) => {
+    expect(parseLimitToCents(input)).toEqual({ cents: null, error })
+  })
 
   it('explains a limit with more than two decimal places', () => {
-    expect(parseLimitToCents('1.005')).toEqual({ cents: null, error: 'Use at most two decimal places, like 500.00.' })
+    expect(parseLimitToCents('1.005')).toEqual({ cents: null, error: 'Limit can have at most 2 decimal places, for example 12.50.' })
   })
 
   it('explains a limit larger than the API can store', () => {
-    expect(parseLimitToCents('21474836.48')).toEqual({ cents: null, error: 'Enter a limit no more than $21,474,836.47.' })
+    expect(parseLimitToCents('21474836.48')).toEqual({ cents: null, error: 'Limit must be $21,474,836.47 or less.' })
   })
 
   it('never goes through floating point dollars', () => {

@@ -18,16 +18,25 @@ describe('parseDollarsToCents', () => {
   })
 
   it.each([
-    ['', 'Enter an amount.'],
-    ['   ', 'Enter an amount.'],
-    ['abc', 'Enter the amount as a number, like 12.50.'],
-    ['.', 'Enter the amount as a number, like 12.50.'],
-    ['-5', 'Enter the amount as a number, like 12.50.'],
-    ['1,25', 'Enter the amount as a number, like 12.50.'],
-    ['1.999', 'Use at most two decimal places, like 12.50.'],
-    ['0', 'Enter an amount greater than zero.'],
-    ['0.00', 'Enter an amount greater than zero.'],
-    ['21474836.48', 'Enter an amount no more than $21,474,836.47.'],
+    ['', 'Amount is required.'],
+    ['   ', 'Amount is required.'],
+    ['abc', 'Amount must be a number, for example 12.50.'],
+    ['.', 'Amount must be a number, for example 12.50.'],
+    ['-5', 'Amount must be greater than 0.'],
+    ['-$5', 'Amount must be greater than 0.'],
+    ['$-5', 'Amount must be greater than 0.'],
+    ['-0', 'Amount must be greater than 0.'],
+    ['-abc', 'Amount must be a number, for example 12.50.'],
+    ['12abc', 'Amount must be a number, for example 12.50.'],
+    ['1e3', 'Amount must be a number, for example 12.50.'],
+    ['Infinity', 'Amount must be a number, for example 12.50.'],
+    ['NaN', 'Amount must be a number, for example 12.50.'],
+    ['-1.999', 'Amount can have at most 2 decimal places, for example 12.50.'],
+    ['1,25', 'Amount must be a number, for example 12.50.'],
+    ['1.999', 'Amount can have at most 2 decimal places, for example 12.50.'],
+    ['0', 'Amount must be greater than 0.'],
+    ['0.00', 'Amount must be greater than 0.'],
+    ['21474836.48', 'Amount must be $21,474,836.47 or less.'],
   ])('rejects %j', (input, error) => {
     expect(parseDollarsToCents(input)).toEqual({ cents: null, error })
   })
@@ -37,7 +46,8 @@ describe('readDollars', () => {
   it.each([
     ['12.50', { cents: 1250, reason: null }],
     ['', { cents: null, reason: 'empty' }],
-    ['-1', { cents: null, reason: 'format' }],
+    ['-1', { cents: null, reason: 'negative' }],
+    ['-0.01', { cents: null, reason: 'negative' }],
     ['abc', { cents: null, reason: 'format' }],
     ['1.005', { cents: null, reason: 'decimals' }],
     ['0', { cents: null, reason: 'zero' }],

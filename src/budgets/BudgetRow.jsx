@@ -6,7 +6,10 @@ import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
 import ProgressBar from '../components/ui/ProgressBar'
+import { useToast } from '../components/ui/useToast'
 import { useIsMountedRef } from '../hooks/useIsMountedRef'
+import { mapApiFieldErrors } from '../validation/apiErrors'
+import { useFormFields } from '../validation/useFormFields'
 import CategoryLabel from '../transactions/CategoryLabel'
 import { centsToDollarString, formatCents } from '../transactions/money'
 import { parseLimitToCents } from './limits'
@@ -14,11 +17,8 @@ import RemoveBudgetDialog from './RemoveBudgetDialog'
 import './BudgetRow.css'
 import { budgetAlert } from './budgetAlerts'
 
-// The API names the field limit_cents; people see "Limit".
-function humanizeLimitError(message) {
-  const text = String(message)
-  return text.startsWith('limit_cents') ? `Limit${text.slice('limit_cents'.length)}` : text
-}
+const FIELDS = ['limit']
+const validateLimit = (_field, values) => parseLimitToCents(values.limit).error
 
 // "$95.13 left", or "Over by $23.15" when the limit has been passed (US-37).
 function remainingText(remainingCents) {
@@ -50,21 +50,17 @@ function remainingText(remainingCents) {
 export default function BudgetRow({ category, budget, spending, onSaved, onRemoved, onOutOfDate, onAddExpense }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
-  const [value, setValue] = useState('')
-  const [error, setError] = useState(null)
   // { error, context }: a problem that isn't only about the typed value. The context
   // ("not saved" or "not changed") is fixed when the save fails, so it doesn't change
   // if the list reloads underneath it.
   const [formError, setFormError] = useState(null)
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const { showToast } = useToast()
 
   // The row's first button (Set limit, or Edit) gets focus back when the form closes,
   // and after a remove.
   const primaryRef = useRef(null)
   const removeRef = useRef(null)
-  const inputRef = useRef(null)
   const savingRef = useRef(false)
   // Where focus should go once the next render is on screen. A new object each time,
   // so asking for the same place twice still moves focus.
@@ -73,45 +69,28 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
   const fieldId = useId()
 
   useEffect(() => {
-    if (focusRequest?.to === 'input') inputRef.current?.focus()
     if (focusRequest?.to === 'primary') primaryRef.current?.focus()
   }, [focusRequest])
 
   function openForm() {
-    setValue(budget ? centsToDollarString(budget.limit_cents) : '')
-    setError(null)
     setFormError(null)
-    setHasAttemptedSubmit(false)
-    setMessage('')
     setIsEditing(true)
-    setFocusRequest({ to: 'input' })
   }
 
   function closeForm(text = '') {
     setIsEditing(false)
-    setError(null)
     setFormError(null)
-    setMessage(text)
+    if (text) showToast(text)
     setFocusRequest({ to: 'primary' })
   }
 
-  function handleChange(event) {
-    setValue(event.target.value)
-    if (hasAttemptedSubmit || error) setError(parseLimitToCents(event.target.value).error)
-  }
-
-  async function handleSubmit(event) {
+  async function handleSubmit(event, form) {
     event.preventDefault()
     if (savingRef.current) return
 
-    setHasAttemptedSubmit(true)
     setFormError(null)
-    const { cents, error: limitError } = parseLimitToCents(value)
-    setError(limitError)
-    if (limitError) {
-      inputRef.current?.focus()
-      return
-    }
+    if (!form.validateAll()) return
+    const { cents } = parseLimitToCents(form.values.limit)
 
     savingRef.current = true
     setIsSaving(true)
@@ -133,19 +112,16 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
       closeForm(`${category} limit saved: ${formatCents(saved.limit_cents)} a month.`)
       return
     }
-    handleSaveError(failure)
+    // The form stays open with the typed limit.
+    handleSaveError(failure, form)
   }
 
-  function handleSaveError(err) {
+  function handleSaveError(err, form) {
     const context = budget ? 'The limit was not changed.' : 'The limit was not saved.'
     if (err?.kind === 'validation') {
-      const fieldErrors = err.fieldErrors ?? {}
-      if (fieldErrors.limit_cents) {
-        setError(humanizeLimitError(fieldErrors.limit_cents))
-        inputRef.current?.focus()
-      }
-      const others = Object.entries(fieldErrors).filter(([field]) => field !== 'limit_cents')
-      if (others.length > 0 || !fieldErrors.limit_cents) setFormError({ error: err, context })
+      const { fieldErrors, hasOtherErrors } = mapApiFieldErrors(err.fieldErrors, { limit_cents: 'limit' })
+      form.showErrors(fieldErrors)
+      if (hasOtherErrors || !fieldErrors.limit) setFormError({ error: err, context })
       return
     }
     if (err?.kind === 'not_found') {
@@ -159,6 +135,11 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
       // Added somewhere else meanwhile. Load the list again so this row shows it; the
       // next Save then changes that limit instead.
       onOutOfDate()
+      setFormError({
+        error: { kind: 'conflict', message: `You already have a ${category} limit. Save again to change it.` },
+        context,
+      })
+      return
     }
     if (!err?.kind) console.error(err)
     setFormError({ error: err, context })
@@ -174,7 +155,7 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
   function handleRemoved(text) {
     setIsRemoving(false)
     onRemoved(category)
-    setMessage(text)
+    showToast(text)
   }
 
   const progress = budget && spending?.limit_cents === budget.limit_cents ? spending : null
@@ -205,10 +186,7 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
                 ref={removeRef}
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setMessage('')
-                  setIsRemoving(true)
-                }}
+                onClick={() => setIsRemoving(true)}
                 aria-label={`Remove ${category} limit`}
               >
                 Remove
@@ -220,10 +198,7 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
                   size="sm"
                   icon={Plus}
                   aria-haspopup="dialog"
-                  onClick={(event) => {
-                    setMessage('')
-                    onAddExpense(category, event.currentTarget)
-                  }}
+                  onClick={(event) => onAddExpense(category, event.currentTarget)}
                   aria-label={`Add expense to ${category}`}
                 >
                   Add expense
@@ -239,37 +214,17 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
       )}
 
       {isEditing && (
-        <form className="budget-row__form" onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate>
-          <Field id={fieldId} label={`Monthly limit for ${category} ($)`} hint="For example 500.00" error={error}>
-            {(controlProps) => (
-              <Input
-                {...controlProps}
-                ref={inputRef}
-                className="tabular"
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0.00"
-                value={value}
-                onChange={handleChange}
-              />
-            )}
-          </Field>
-          {formError && <ErrorAlert error={formError.error} context={formError.context} />}
-          <div className="budget-row__buttons">
-            <Button type="submit" variant="primary" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save limit'}
-            </Button>
-            <Button onClick={() => closeForm()} disabled={isSaving}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+        <LimitForm
+          category={category}
+          fieldId={fieldId}
+          startValue={budget ? centsToDollarString(budget.limit_cents) : ''}
+          formError={formError}
+          isSaving={isSaving}
+          onSubmit={handleSubmit}
+          onKeyDown={handleKeyDown}
+          onCancel={() => closeForm()}
+        />
       )}
-
-      <p className="budget-row__message" role="status">
-        {message}
-      </p>
 
       {isRemoving && budget && (
         <RemoveBudgetDialog
@@ -285,6 +240,47 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
         />
       )}
     </li>
+  )
+}
+
+// The limit's form, shown in the row. Mounted fresh each time it opens, so it starts from
+// the saved limit with no errors, and focuses its input.
+function LimitForm({ category, fieldId, startValue, formError, isSaving, onSubmit, onKeyDown, onCancel }) {
+  const form = useFormFields({ initialValues: { limit: startValue }, fields: FIELDS, validate: validateLimit })
+  const { errors, fieldProps } = form
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  return (
+    <form className="budget-row__form" onSubmit={(event) => onSubmit(event, form)} onKeyDown={onKeyDown} noValidate>
+      <Field id={fieldId} label={`Monthly limit for ${category} ($)`} hint="For example 500.00" error={errors.limit}>
+        {(controlProps) => (
+          <Input
+            {...controlProps}
+            {...fieldProps('limit', (element) => {
+              inputRef.current = element
+            })}
+            className="tabular"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0.00"
+          />
+        )}
+      </Field>
+      {formError && <ErrorAlert error={formError.error} context={formError.context} />}
+      <div className="budget-row__buttons">
+        <Button type="submit" variant="primary" disabled={isSaving}>
+          {isSaving ? 'Saving…' : 'Save limit'}
+        </Button>
+        <Button onClick={onCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   )
 }
 

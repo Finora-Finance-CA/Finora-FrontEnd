@@ -27,3 +27,13 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+/* Figures line up digit for digit, like every other amount in the app. */
+.category-chart .recharts-text {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Where the chart goes while its code downloads: the same height, so nothing moves. */
+.category-chart__placeholder {
+  height: 240px;
+}

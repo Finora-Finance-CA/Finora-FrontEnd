@@ -1,34 +1,20 @@
-// Validation for the transaction forms (Add Expense and Add Income).
+// Validation for the transaction forms (add and edit, expense and income), built from the
+// shared rules in ../validation/rules.js so it matches the API exactly.
 // Form values are the raw strings from the inputs:
 //   { amount: '19.99', date: '2026-10-06', category: 'Food', description: '' }
 
-import { CATEGORIES, MAX_DESCRIPTION_LENGTH } from './constants'
-import { isValidDate } from './dates'
+import { mapApiFieldErrors } from '../validation/apiErrors'
+import { validateCategory, validateDate, validateText } from '../validation/rules'
+import { MAX_DESCRIPTION_LENGTH } from './constants'
 import { parseDollarsToCents } from './money'
 
 export const FIELD_NAMES = Object.freeze(['amount', 'date', 'category', 'description'])
 
 const validators = {
-  amount: (values) => parseDollarsToCents(values.amount).error,
-
-  date: (values) => {
-    if (!values.date) return 'Choose a date.'
-    if (!isValidDate(values.date)) return 'Enter a real date, from 1900 onwards.'
-    return null
-  },
-
-  category: (values, { categoryRequired }) => {
-    if (!values.category) return categoryRequired ? 'Choose a category.' : null
-    if (!CATEGORIES.includes(values.category)) return 'Choose one of the listed categories.'
-    return null
-  },
-
-  description: (values) => {
-    if (values.description.trim().length > MAX_DESCRIPTION_LENGTH) {
-      return `Keep the description to ${MAX_DESCRIPTION_LENGTH} characters or fewer.`
-    }
-    return null
-  },
+  amount: (values) => parseDollarsToCents(values.amount, 'Amount').error,
+  date: (values) => validateDate(values.date, 'Date'),
+  category: (values, { categoryRequired }) => validateCategory(values.category, { required: categoryRequired }),
+  description: (values) => validateText(values.description, 'Description', { max: MAX_DESCRIPTION_LENGTH }),
 }
 
 /**
@@ -83,37 +69,19 @@ export function toTransactionPayload(values, type, fields = FIELD_NAMES) {
   return payload
 }
 
-// API field names that differ from the form's.
-const API_TO_FORM_FIELD = { amount_cents: 'amount' }
+// API field names to the form's.
+const API_TO_FORM_FIELD = { amount_cents: 'amount', date: 'date', category: 'category', description: 'description' }
 
 /**
- * Splits the API's 400 `errors` object into errors for form fields and a list of
- * messages that don't belong to any shown field (e.g. `type` or `body`).
+ * Puts the API's 400 `errors` under the form fields they belong to (see
+ * mapApiFieldErrors). Errors for fields the form doesn't show (e.g. `type` or `body`)
+ * only set `hasOtherErrors`; their text is never shown.
  *
  * @param {Record<string, string>} apiErrors
  * @param {readonly string[]} [fields] The fields the form shows.
- * @returns {{ fieldErrors: Record<string, string>, otherErrors: string[] }}
+ * @returns {{ fieldErrors: Record<string, string>, hasOtherErrors: boolean }}
  */
 export function mapApiErrors(apiErrors, fields = FIELD_NAMES) {
-  const fieldErrors = {}
-  const otherErrors = []
-
-  for (const [apiField, message] of Object.entries(apiErrors ?? {})) {
-    const field = API_TO_FORM_FIELD[apiField] ?? apiField
-    if (fields.includes(field)) {
-      fieldErrors[field] = humanizeApiMessage(apiField, field, message)
-    } else {
-      otherErrors.push(String(message))
-    }
-  }
-  return { fieldErrors, otherErrors }
-}
-
-// The API's messages start with its field name ("amount_cents must be ..."). Swap
-// that for the label the user sees ("Amount must be ...").
-function humanizeApiMessage(apiField, field, message) {
-  const text = String(message)
-  if (!text.startsWith(apiField)) return text
-  const label = field.charAt(0).toUpperCase() + field.slice(1)
-  return label + text.slice(apiField.length)
+  const shown = Object.fromEntries(Object.entries(API_TO_FORM_FIELD).filter(([, field]) => fields.includes(field)))
+  return mapApiFieldErrors(apiErrors, shown)
 }

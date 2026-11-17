@@ -148,3 +148,34 @@
     padding: 0;
   }
 }
+
+/* Narrow phones (US-55): each transaction is a small card, so nothing has to share a
+   line with the amount. Description and the ⋯ menu on top, then the category with the
+   amount, then the date with Income or Expense. */
+@media (max-width: 639px) {
+  .transaction-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'details actions'
+      'category amount'
+      'date amount';
+    align-items: start;
+    row-gap: var(--space-1);
+    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  }
+
+  .transaction-table .transaction-row__actions {
+    justify-self: end;
+    margin-top: calc(var(--space-2) * -1);
+  }
+
+  .transaction-row__category {
+    align-self: center;
+    min-width: 0;
+  }
+
+  .transaction-row__amount {
+    align-self: end;
+    padding-right: var(--space-2);
+  }
+}

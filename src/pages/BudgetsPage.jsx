@@ -6,6 +6,7 @@ import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import PageHeader from '../components/ui/PageHeader'
 import Skeleton from '../components/ui/Skeleton'
+import { useToast } from '../components/ui/useToast'
 import BudgetRow from '../budgets/BudgetRow'
 import { useBudgets } from '../budgets/useBudgets'
 import { useBudgetStatus } from '../budgets/useBudgetStatus'
@@ -31,21 +32,20 @@ export default function BudgetsPage() {
   const spending = useBudgetStatus(month)
   // The category an expense is being added to, or null.
   const [addingTo, setAddingTo] = useState(null)
-  // What just happened ("Expense of $12.50 saved."), shown above the list.
-  const [message, setMessage] = useState('')
+  const { showToast } = useToast()
   const openerRef = useRef(null)
 
   function openAddExpense(category, opener) {
     openerRef.current = opener
-    setMessage('')
     setAddingTo(category)
   }
 
   // Saving notifies every page (useTransactionForm), so the figures load again by
-  // themselves; the row keeps its place while they do.
+  // themselves; the row keeps its place while they do. "Expense of $12.50 saved." shows
+  // as a toast.
   function handleExpenseSaved(_transaction, text) {
     setAddingTo(null)
-    setMessage(text)
+    showToast(text)
   }
 
   return (
@@ -59,7 +59,6 @@ export default function BudgetsPage() {
         budgets={budgets}
         spending={spending}
         month={month}
-        message={message}
         onAddExpense={openAddExpense}
       />
       {addingTo && (
@@ -74,7 +73,7 @@ export default function BudgetsPage() {
   )
 }
 
-function BudgetsContent({ budgets, spending, month, message, onAddExpense }) {
+function BudgetsContent({ budgets, spending, month, onAddExpense }) {
   if (budgets.status === 'loading' || spending.status === 'loading') {
     return (
       <>
@@ -148,9 +147,6 @@ function BudgetsContent({ budgets, spending, month, message, onAddExpense }) {
           </p>
         )}
       </div>
-      <p className="budgets__message" role="status">
-        {message}
-      </p>
       <Card padded={false} aria-busy={spending.isRefreshing}>
         <ul className="budget-list">
           {BUDGET_CATEGORIES.map((category) => (

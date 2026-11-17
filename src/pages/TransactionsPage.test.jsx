@@ -524,7 +524,7 @@ describe('date range filter (US-25)', () => {
     fireEvent.change(within(popover).getByLabelText('To'), { target: { value: '2026-09-01' } })
 
     expect(await screen.findByText('The To date is before the From date. Change one of them to see your transactions.')).toBeInTheDocument()
-    expect(within(popover).getByLabelText('To')).toHaveAccessibleDescription('Choose a date on or after the From date.')
+    expect(within(popover).getByLabelText('To')).toHaveAccessibleDescription('To date must be on or after the From date.')
     expect(within(popover).getByLabelText('To')).toHaveAttribute('aria-invalid', 'true')
     expect(listTransactions).toHaveBeenCalledTimes(calls)
   })
@@ -689,8 +689,8 @@ describe('adding a transaction', () => {
 
     fireEvent.click(within(drawer).getByRole('button', { name: 'Save expense' }))
 
-    expect(within(drawer).getByLabelText('Amount ($)')).toHaveAccessibleDescription(expect.stringContaining('Enter an amount.'))
-    expect(within(drawer).getByLabelText('Category')).toHaveAccessibleDescription('Choose a category.')
+    expect(within(drawer).getByLabelText('Amount ($)')).toHaveAccessibleDescription(expect.stringContaining('Amount is required.'))
+    expect(within(drawer).getByLabelText('Category')).toHaveAccessibleDescription('Category is required for an expense.')
     expect(within(drawer).getByLabelText('Amount ($)')).toHaveFocus()
     expect(createTransaction).not.toHaveBeenCalled()
   })
@@ -911,8 +911,8 @@ describe('editing a transaction', () => {
     fireEvent.change(within(dialog).getByLabelText('Category'), { target: { value: '' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }))
 
-    expect(within(dialog).getByLabelText('Amount ($)')).toHaveAccessibleDescription(expect.stringContaining('Enter an amount.'))
-    expect(within(dialog).getByLabelText('Category')).toHaveAccessibleDescription('Choose a category.')
+    expect(within(dialog).getByLabelText('Amount ($)')).toHaveAccessibleDescription(expect.stringContaining('Amount is required.'))
+    expect(within(dialog).getByLabelText('Category')).toHaveAccessibleDescription('Category is required for an expense.')
     expect(within(dialog).getByLabelText('Amount ($)')).toHaveFocus()
     expect(updateTransaction).not.toHaveBeenCalled()
   })
@@ -920,7 +920,7 @@ describe('editing a transaction', () => {
   it('shows field errors returned by the API', async () => {
     updateTransaction.mockRejectedValue(
       new ApiError('validation', 'Some details need fixing. Check the highlighted fields.', {
-        fieldErrors: { date: 'date must be a real calendar date.' },
+        fieldErrors: { date: 'Date must be a real calendar date.' },
       })
     )
     await showList()
