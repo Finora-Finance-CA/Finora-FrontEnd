@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import AppShell from './components/AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -6,6 +6,8 @@ import GuestRoute from './components/GuestRoute'
 import PageLoading from './components/PageLoading'
 import ProtectedRoute from './components/ProtectedRoute'
 import { ToastProvider } from './components/ui/Toast'
+import { useToast } from './components/ui/useToast'
+import { useAuth } from './context/useAuth'
 import { TransactionsSyncProvider } from './context/TransactionsSyncContext'
 import { lazyPage } from './lib/lazyPage'
 
@@ -19,9 +21,22 @@ const TransactionsPage = lazyPage(() => import('./pages/TransactionsPage'))
 const DashboardPage = lazyPage(() => import('./pages/DashboardPage'))
 const GoalsPage = lazyPage(() => import('./pages/GoalsPage'))
 
+// A message about one user's data ("Goal deleted.") must never be left on screen for the
+// next person to sign in on this browser (US-59).
+function ClearToastsWhenUserChanges() {
+    const { user } = useAuth()
+    const { clearToasts } = useToast()
+    const userKey = user ? (user.id ?? user.email) : null
+    useEffect(() => {
+        clearToasts()
+    }, [userKey, clearToasts])
+    return null
+}
+
 function App() {
     return (
         <ToastProvider>
+            <ClearToastsWhenUserChanges />
             {/* The last line of defence: never a blank screen (US-57). Signed-in pages
                 also have their own boundary inside the app shell (AppShell.jsx). */}
             <ErrorBoundary variant="app">

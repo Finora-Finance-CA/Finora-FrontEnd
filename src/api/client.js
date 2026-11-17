@@ -100,6 +100,9 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      // Every answer is one user's data: never kept in, or served from, the browser's
+      // cache, so the next user on this browser can't be shown it (US-59).
+      cache: 'no-store',
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     data = response.status === 204 ? null : await readJson(response)

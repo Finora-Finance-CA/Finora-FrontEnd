@@ -140,6 +140,28 @@ describe('Toast', () => {
     expect(region()).not.toHaveAttribute('inert')
   })
 
+  it('clears every toast on request, e.g. when a different user signs in', () => {
+    function Clearer() {
+      const { clearToasts } = useToast()
+      return (
+        <button type="button" onClick={clearToasts}>
+          Clear
+        </button>
+      )
+    }
+    render(
+      <ToastProvider>
+        <Sender />
+        <Clearer />
+      </ToastProvider>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    expect(region()).toBeEmptyDOMElement()
+  })
+
   it('refuses to work outside a ToastProvider, so a missing one is never silent', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 

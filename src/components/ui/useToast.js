@@ -10,7 +10,7 @@ export const TOAST_DURATION_MS = 5000
 /**
  * Shows short success messages ("Transaction deleted.") in the app's toast region.
  *
- * @returns {{ showToast: (message: string) => void }}
+ * @returns {{ showToast: (message: string) => void, clearToasts: () => void }}
  * @throws {Error} Outside a ToastProvider, so a missing provider is never silent.
  */
 export function useToast() {
