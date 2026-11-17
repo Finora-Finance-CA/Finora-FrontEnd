@@ -18,6 +18,16 @@ function failChunk(target) {
 }
 
 describe('reloadOnStaleChunk', () => {
+  it('never reloads while offline, so the error boundary can say so (US-57)', () => {
+    const target = setUp()
+    target.navigator = { onLine: false }
+
+    const event = failChunk(target)
+
+    expect(target.location.reload).not.toHaveBeenCalled()
+    expect(event.defaultPrevented).toBe(false)
+  })
+
   it('reloads once when a page chunk fails to load, and stops the error', () => {
     const target = setUp()
 

@@ -13,9 +13,9 @@ describe('validateTransactionForm', () => {
 
   it('reports every invalid field of an empty expense at once', () => {
     expect(validateTransactionForm({ amount: '', date: '', category: '', description: '' }, EXPENSE)).toEqual({
-      amount: 'Enter an amount.',
-      date: 'Choose a date.',
-      category: 'Choose a category.',
+      amount: 'Amount is required.',
+      date: 'Date is required.',
+      category: 'Category is required for an expense.',
     })
   })
 
@@ -26,8 +26,13 @@ describe('validateTransactionForm', () => {
 
 describe('validateField', () => {
   it.each([
-    ['2026-02-30', 'Enter a real date, from 1900 onwards.'],
-    ['1899-12-31', 'Enter a real date, from 1900 onwards.'],
+    ['2026-02-30', 'Date must be a real calendar date.'],
+    ['2025-02-29', 'Date must be a real calendar date.'],
+    ['1899-12-31', 'Date must be between 1900-01-01 and 2100-12-31.'],
+    ['2101-01-01', 'Date must be between 1900-01-01 and 2100-12-31.'],
+    ['2026/10/05', 'Date must be in YYYY-MM-DD format, for example 2026-10-05.'],
+    ['', 'Date is required.'],
+    ['2024-02-29', null],
     ['2026-10-05', null],
   ])('checks the date %s', (date, message) => {
     expect(validateField('date', { ...VALID, date }, EXPENSE)).toBe(message)
@@ -35,14 +40,21 @@ describe('validateField', () => {
 
   it('rejects a category that is not in the list', () => {
     expect(validateField('category', { ...VALID, category: 'Groceries' }, EXPENSE)).toBe(
-      'Choose one of the listed categories.'
+      'Category must be one of Food, Transportation, Housing, Entertainment or Other.'
+    )
+  })
+
+  it('counts the description in characters as the API does, so 255 emoji fit', () => {
+    expect(validateField('description', { ...VALID, description: '😀'.repeat(255) }, EXPENSE)).toBeNull()
+    expect(validateField('description', { ...VALID, description: '😀'.repeat(256) }, EXPENSE)).toBe(
+      'Description must be 255 characters or fewer.'
     )
   })
 
   it('limits the description to 255 characters, ignoring surrounding spaces', () => {
     expect(validateField('description', { ...VALID, description: ` ${'x'.repeat(255)} ` }, EXPENSE)).toBeNull()
     expect(validateField('description', { ...VALID, description: 'x'.repeat(256) }, EXPENSE)).toBe(
-      'Keep the description to 255 characters or fewer.'
+      'Description must be 255 characters or fewer.'
     )
   })
 })
@@ -68,15 +80,34 @@ describe('toTransactionPayload', () => {
 })
 
 describe('mapApiErrors', () => {
-  it('puts API errors on the matching fields with the field names people see', () => {
+  it('puts the API’s plain-language messages under the matching fields', () => {
     expect(
-      mapApiErrors(
-        { amount_cents: 'amount_cents must be greater than zero.', type: 'type must be one of: income, expense.' },
-        EXPENSE.fields
-      )
+      mapApiErrors({ amount_cents: 'Amount must be greater than 0.', date: 'Date must be a real calendar date.' }, EXPENSE.fields)
     ).toEqual({
-      fieldErrors: { amount: 'Amount must be greater than zero.' },
-      otherErrors: ['type must be one of: income, expense.'],
+      fieldErrors: { amount: 'Amount must be greater than 0.', date: 'Date must be a real calendar date.' },
+      hasOtherErrors: false,
     })
+  })
+
+  it('never shows the text of an error for a field the form does not have', () => {
+    expect(mapApiErrors({ type: 'Type must be income or expense.' }, EXPENSE.fields)).toEqual({
+      fieldErrors: {},
+      hasOtherErrors: true,
+    })
+  })
+
+  it('drops a category error on the income form, which has no category field', () => {
+    expect(mapApiErrors({ category: 'Category must be one of Food.' }, INCOME.fields)).toEqual({
+      fieldErrors: {},
+      hasOtherErrors: true,
+    })
+  })
+
+  it.each([
+    ['not text', { detail: 'x' }],
+    ['empty', '   '],
+    ['very long', 'x'.repeat(500)],
+  ])('drops a field message that is %s', (_, message) => {
+    expect(mapApiErrors({ amount_cents: message }, EXPENSE.fields)).toEqual({ fieldErrors: {}, hasOtherErrors: true })
   })
 })

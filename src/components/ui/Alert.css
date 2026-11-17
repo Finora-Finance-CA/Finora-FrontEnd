@@ -32,6 +32,11 @@
   background: var(--negative-bg);
 }
 
+.alert--info {
+  color: var(--accent-text);
+  background: var(--accent-tint);
+}
+
 .alert--success {
   color: var(--positive);
   background: var(--positive-bg);

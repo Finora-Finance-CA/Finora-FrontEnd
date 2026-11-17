@@ -1,5 +1,5 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { authErrorMessage } from '../auth/authErrors';
 import Logo from '../components/Logo';
@@ -9,12 +9,13 @@ import Card from '../components/ui/Card';
 import Field from '../components/ui/Field';
 import IconButton from '../components/ui/IconButton';
 import Input from '../components/ui/Input';
+import { useAuth } from '../context/useAuth';
 import { supabase } from '../lib/supabase';
+import { useFormFields } from '../validation/useFormFields';
+import { MIN_PASSWORD_LENGTH, validateEmail, validatePassword } from '../validation/rules';
 import './AuthPage.css';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const MIN_PASSWORD_LENGTH = 8;
+const FIELDS = ['email', 'password'];
 
 const COPY = {
     login: {
@@ -39,17 +40,13 @@ const COPY = {
     },
 };
 
-// The same checks as before sending: both fields filled in, an email that looks like
-// one, and (to register) a password of at least 8 characters.
-function validate(email, password, isRegister) {
-    const errors = {};
-    if (!email) errors.email = 'Enter your email.';
-    else if (!EMAIL_PATTERN.test(email)) errors.email = 'Enter a valid email address, like name@example.com.';
-    if (!password) errors.password = 'Enter your password.';
-    else if (isRegister && password.length < MIN_PASSWORD_LENGTH) {
-        errors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
-    }
-    return errors;
+// The shared rules (../validation/rules.js): an email that looks like one, and a
+// password, of at least 8 characters to register.
+function validatorFor(isRegister) {
+    return (field, values) =>
+        field === 'email'
+            ? validateEmail(values.email)
+            : validatePassword(values.password, { minLength: isRegister ? MIN_PASSWORD_LENGTH : 0 });
 }
 
 /**
@@ -65,40 +62,29 @@ function AuthPage({ mode }) {
     const navigate = useNavigate();
     const location = useLocation();
     const redirectTo = location.state?.from?.pathname || '/transactions';
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const { sessionExpired } = useAuth();
+    const { values, errors, fieldProps, validateAll, showErrors } = useFormFields({
+        initialValues: { email: '', password: '' },
+        fields: FIELDS,
+        validate: validatorFor(isRegister),
+    });
     const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState(null);
     const [message, setMessage] = useState(null);
     const [loading, setLoading] = useState(false);
-    const emailRef = useRef(null);
-    const passwordRef = useRef(null);
     const idPrefix = useId();
     const emailId = `${idPrefix}-email`;
     const passwordId = `${idPrefix}-password`;
 
-    function focusField(field) {
-        (field === 'email' ? emailRef : passwordRef).current?.focus();
-    }
-
-    // Editing a field clears its message; the next submit checks it again.
-    function clearError(field) {
-        if (errors[field]) setErrors((current) => ({ ...current, [field]: undefined }));
-    }
-
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (loading) return;
         setFormError(null);
         setMessage(null);
+        if (!validateAll()) return;
 
-        const trimmedEmail = email.trim();
-        const fieldErrors = validate(trimmedEmail, password, isRegister);
-        setErrors(fieldErrors);
-        if (fieldErrors.email || fieldErrors.password) {
-            focusField(fieldErrors.email ? 'email' : 'password');
-            return;
-        }
+        const trimmedEmail = values.email.trim();
+        const { password } = values;
 
         setLoading(true);
 
@@ -110,8 +96,7 @@ function AuthPage({ mode }) {
             if (error) {
                 const { field, message: text } = authErrorMessage(error, mode);
                 if (field) {
-                    setErrors({ [field]: text });
-                    focusField(field);
+                    showErrors({ [field]: text });
                 } else {
                     setFormError(text);
                 }
@@ -141,21 +126,20 @@ function AuthPage({ mode }) {
                     <p className="auth-card__subtitle">{copy.subtitle}</p>
                 </div>
 
+                {sessionExpired && !isRegister && (
+                    <Alert tone="info">Your session expired, please log in again.</Alert>
+                )}
+
                 <form className="auth-card__form" onSubmit={handleSubmit} noValidate>
                     <Field id={emailId} label="Email" error={errors.email}>
                         {(controlProps) => (
                             <Input
                                 {...controlProps}
-                                ref={emailRef}
+                                {...fieldProps('email')}
                                 type="email"
                                 autoComplete="email"
                                 autoCapitalize="none"
                                 spellCheck={false}
-                                value={email}
-                                onChange={(event) => {
-                                    setEmail(event.target.value);
-                                    clearError('email');
-                                }}
                             />
                         )}
                     </Field>
@@ -169,14 +153,9 @@ function AuthPage({ mode }) {
                         {(controlProps) => (
                             <Input
                                 {...controlProps}
-                                ref={passwordRef}
+                                {...fieldProps('password')}
                                 type={showPassword ? 'text' : 'password'}
                                 autoComplete={copy.passwordAutoComplete}
-                                value={password}
-                                onChange={(event) => {
-                                    setPassword(event.target.value);
-                                    clearError('password');
-                                }}
                                 trailing={
                                     <IconButton
                                         icon={showPassword ? EyeOff : Eye}

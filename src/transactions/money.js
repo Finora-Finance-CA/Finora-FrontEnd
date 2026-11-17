@@ -2,6 +2,7 @@
 // in both directions with whole-number maths only. Floating point would round wrongly:
 // 19.99 * 100 gives 1998.9999999999998.
 
+import { MESSAGES } from '../validation/rules'
 import { MAX_AMOUNT_CENTS } from './constants'
 
 // Digits with optional comma grouping ("1,234") or none ("1234"), then up to two
@@ -10,19 +11,29 @@ const AMOUNT_PATTERN = /^(\d{1,3}(?:,\d{3})+|\d*)(?:\.(\d*))?$/
 
 /**
  * Reads a dollar amount typed by the user, without deciding how to word a problem.
- * Both the transaction form and the budget form use it, each with its own messages.
+ * parseDollarsToCents turns the reason into the shared message for any money field.
  *
  * Accepts an optional leading "$" and surrounding spaces, e.g. "19.99", "$5",
- * "1,250.5" or ".75". A minus sign isn't accepted, so "-1" is a 'format' problem.
+ * "1,250.5" or ".75". A minus sign in front of a valid amount ("-5", "-$5", "$-5") is
+ * read as 'negative', so the user is told the amount must be greater than 0.
  *
  * @param {string} input
  * @returns {{ cents: number, reason: null }
- *   | { cents: null, reason: 'empty'|'format'|'decimals'|'zero'|'too_large' }}
+ *   | { cents: null, reason: 'empty'|'format'|'decimals'|'zero'|'negative'|'too_large' }}
  */
 export function readDollars(input) {
-  const text = String(input ?? '').trim().replace(/^\$\s*/, '')
-  if (text === '') return { cents: null, reason: 'empty' }
+  const raw = String(input ?? '').trim()
+  if (raw === '') return { cents: null, reason: 'empty' }
 
+  const negative = /^(?:-\s*\$?|\$\s*-)\s*/.exec(raw)
+  if (negative) {
+    const rest = readDollars(raw.slice(negative[0].length))
+    return rest.reason === null || rest.reason === 'zero' || rest.reason === 'too_large'
+      ? { cents: null, reason: 'negative' }
+      : { cents: null, reason: rest.reason === 'empty' ? 'format' : rest.reason }
+  }
+
+  const text = raw.replace(/^\$\s*/, '')
   const match = AMOUNT_PATTERN.exec(text)
   if (!match) return { cents: null, reason: 'format' }
 
@@ -40,25 +51,27 @@ export function readDollars(input) {
   return { cents, reason: null }
 }
 
-const AMOUNT_MESSAGES = {
-  empty: 'Enter an amount.',
-  format: 'Enter the amount as a number, like 12.50.',
-  decimals: 'Use at most two decimal places, like 12.50.',
-  zero: 'Enter an amount greater than zero.',
+const MESSAGE_FOR_REASON = {
+  empty: MESSAGES.required,
+  format: MESSAGES.amountFormat,
+  decimals: MESSAGES.decimals,
+  zero: MESSAGES.positive,
+  negative: MESSAGES.positive,
+  too_large: MESSAGES.maxAmount,
 }
 
 /**
- * Parses a transaction amount typed by the user. See readDollars for what's accepted.
+ * Parses a money amount typed in dollars into integer cents, with the shared message
+ * (../validation/rules.js) for any problem. Used by every money field: a transaction's
+ * amount, a budget limit, a goal's target and a contribution.
  *
  * @param {string} input
+ * @param {string} [label] How the message names the field, e.g. "Limit".
  * @returns {{ cents: number, error: null } | { cents: null, error: string }}
  */
-export function parseDollarsToCents(input) {
+export function parseDollarsToCents(input, label = 'Amount') {
   const { cents, reason } = readDollars(input)
-  if (!reason) return { cents, error: null }
-  const error =
-    reason === 'too_large' ? `Enter an amount no more than ${formatCents(MAX_AMOUNT_CENTS)}.` : AMOUNT_MESSAGES[reason]
-  return { cents: null, error }
+  return reason ? { cents: null, error: MESSAGE_FOR_REASON[reason](label) } : { cents, error: null }
 }
 
 /**

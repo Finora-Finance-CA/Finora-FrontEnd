@@ -4,6 +4,7 @@ import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import { useToast } from '../components/ui/useToast'
 import { useTransactionsSync } from '../context/useTransactionsSync'
 import DeleteTransactionDialog from './DeleteTransactionDialog'
 import EditTransactionDialog from './EditTransactionDialog'
@@ -31,8 +32,8 @@ const MESSAGES = {
  * @param {boolean} props.rangeReversed
  * @param {(changes: object, options?: { replace?: boolean }) => void} props.onQueryChange
  * @param {() => void} props.onAddFirst Opens the add drawer.
- * @param {string} props.message What just happened, e.g. "Transaction deleted.".
- * @param {(message: string) => void} props.onMessage Replaces the message ('' clears it).
+ *
+ * What just happened ("Transaction deleted.") shows as a toast.
  */
 export default function TransactionHistory({
   list,
@@ -41,9 +42,8 @@ export default function TransactionHistory({
   rangeReversed,
   onQueryChange,
   onAddFirst,
-  message,
-  onMessage,
 }) {
+  const { showToast } = useToast()
   const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
   // The ⋯ button that opened the dialog gets focus back when it closes; the heading
@@ -57,21 +57,20 @@ export default function TransactionHistory({
 
   function openDialog(open, transaction, opener) {
     openerRef.current = opener
-    onMessage('')
     open(transaction)
   }
 
   function handleSaved(transaction) {
     list.showSaved(transaction)
     setEditing(null)
-    onMessage(MESSAGES.updated)
+    showToast(MESSAGES.updated)
   }
 
   function handleDeleted(transaction) {
     notifyTransactionsChanged()
     list.showRemoved(transaction.id)
     setDeleting(null)
-    onMessage(MESSAGES.deleted)
+    showToast(MESSAGES.deleted)
   }
 
   // Deleted somewhere else, so budgets and the summary may be out of date too.
@@ -80,11 +79,10 @@ export default function TransactionHistory({
     list.showRemoved(transaction.id)
     setEditing(null)
     setDeleting(null)
-    onMessage(text)
+    showToast(text)
   }
 
   function handleQueryChange(changes, options) {
-    onMessage('')
     onQueryChange(changes, options)
   }
 
@@ -109,10 +107,6 @@ export default function TransactionHistory({
         rangeReversed={rangeReversed}
         searchRef={searchRef}
       />
-
-      <p className="transaction-history__message" role="status">
-        {message}
-      </p>
 
       <Card padded={false}>
         <div className="transaction-history__header">

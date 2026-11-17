@@ -10,8 +10,7 @@
   grid-template-areas:
     'summary actions'
     'progress progress'
-    'form form'
-    'message message';
+    'form form';
   align-items: center;
   column-gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -28,8 +27,7 @@
       'summary'
       'progress'
       'actions'
-      'form'
-      'message';
+      'form';
     row-gap: var(--space-2);
   }
 }
@@ -104,22 +102,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-/* Says what happened to this row ("Food limit saved: ...") until the next change. */
-.budget-row__message {
-  grid-area: message;
-
-  &:not(:empty) {
-    margin-top: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
-    line-height: var(--leading-sm);
-    font-weight: var(--weight-medium);
-    color: var(--positive);
-    background: var(--positive-bg);
-  }
 }
 
 /* The status label next to "80% used" (US-39, US-40). Same colours as its bar. */

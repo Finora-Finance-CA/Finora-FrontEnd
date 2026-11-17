@@ -38,6 +38,14 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* "Waking up the server…", lined up with the page under it. Takes no space while empty. */
+.slow-server-notice:not(:empty) {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--page-pad) var(--page-pad) 0;
+}
+
 /* Focus lands here from the skip link; the content itself shows where you are. */
 .app-shell__main {
   min-width: 0;

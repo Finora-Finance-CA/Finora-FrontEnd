@@ -211,10 +211,9 @@ or visit `/goals`.
 - Amounts are converted to integer cents before being sent to the API.
 
 ### Progress
-- Each goal displays its saved amount, target amount and percentage complete.
+- Each goal shows its saved amount, its target, the percent saved, what's left ("$35.50 to go") and its target date.
+- The percent is worked out from the integer cents with whole-number maths (`goalPercent` in `src/goals/progress.js`): rounded down and capped at 100, so $14.50 of $50.00 shows 29%. A goal at or past its target says "Goal reached".
 - Progress updates after a contribution is saved.
-- The progress bar fills up to 100%; the percentage can exceed 100%
-  when savings exceed the target.
 
 ### API
 All requests require authentication. Users can only access their own goals.
@@ -230,11 +229,15 @@ All requests require authentication. Users can only access their own goals.
 ### Main files
 | File | Purpose |
 | --- | --- |
-| `src/pages/GoalsPage.jsx` | Goal cards, create/edit forms, deletion confirmation and progress |
-| `src/pages/GoalsPage.css` | Goal page styles |
-| `src/pages/ContributionDialog.jsx` | Contribution form |
+| `src/pages/GoalsPage.jsx` | The page: header, loading, error with Try again, empty state, goal list and dialogs |
+| `src/goals/GoalCard.jsx` | One goal's figures, progress and actions |
+| `src/goals/GoalFormDialog.jsx` | Add and edit form |
+| `src/goals/ContributionDialog.jsx` | Contribution form |
+| `src/goals/DeleteGoalDialog.jsx` | Delete confirmation |
+| `src/goals/useGoals.js` | Loads the goals and keeps the list current |
+| `src/goals/progress.js` | Percent saved, with integer maths |
+| `src/goals/Goals.css` | Goal styles (tokens only) |
 | `src/api/goals.js` | Authenticated API calls for goals and contributions |
-| `src/components/ui/ProgressBar.jsx` | Reusable progress bar |
 
 ## Tests
 
@@ -261,6 +264,13 @@ Runs every `src/**/*.test.{js,jsx}` file once with Vitest, in jsdom, and exits. 
 3. Call the API with `apiRequest` from `src/api/client.js`.
 4. Get the current user with `useAuth()` if the page needs it.
 
+## Validation, errors and feedback
+- **One set of rules** (`src/validation/rules.js`) mirrors the API's (see the API's "Validation rules"), with the same labels and messages, e.g. "Amount must be greater than 0." Money typed in dollars becomes integer cents through `parseDollarsToCents` (`src/transactions/money.js`), with string maths only.
+- **Every form uses `useFormFields`** (`src/validation/useFormFields.js`): a field the user changed is checked when they leave it; Save checks every field, sends nothing until all are valid and focuses the first invalid one; after that, a field is checked again as it's typed in. Errors show under their field through `Field`, which sets `aria-invalid` and `aria-describedby`. The API's 400 messages go under their fields through `mapApiFieldErrors` (`src/validation/apiErrors.js`); anything else from the API is never shown. A failed save keeps everything typed.
+- **Success:** every save and delete shows a short toast (`useToast()` from `src/components/ui/useToast.js`, rendered by `ToastProvider` in `App.jsx`): one polite live region, closes after 5 seconds, stays while hovered or focused, never takes focus.
+- **Failures:** `src/api/client.js` turns every failure into a plain-language message (offline, unreachable, timed out after 65 seconds, server error, unexpected response); text from the API's `{ error }` is never shown. A 401 signs the user out and the login page says "Your session expired, please log in again." While any request has taken 5 seconds or more, the app shell says "Waking up the server, this can take up to a minute." (`SlowServerNotice`). Each page and panel shows its own error with **Try again** (`ErrorState`).
+- **Never a blank screen:** `ErrorBoundary` (`src/components/ErrorBoundary.jsx`) wraps the whole app, and each page inside the app shell, so the navigation keeps working. A page whose code fails to download says "You appear to be offline" when offline, and tries again by itself once the connection is back. Pages are loaded with `lazyPage` (`src/lib/lazyPage.js`) so a failed download can be tried again.
+
 ## UI system
 The look is set by tokens in `src/index.css`, and pages are built from the primitives in `src/components/ui`. Component stylesheets use the tokens only: no raw colours, font sizes, spacing, radii, shadows or durations. Inline styles are used only to pass dynamic values as CSS variables (category colours, a progress bar's fill).
 
@@ -285,7 +295,8 @@ The look is set by tokens in `src/index.css`, and pages are built from the primi
 | `Dialog` | `title`, `onClose`, `variant` (dialog, drawer, sheet, nav), `canClose`, `initialFocusRef`, `returnFocusRef`, `fallbackFocusRef` |
 | `Card` | `as`, `padded` |
 | `Pill` | `colors` ({ light, dark } text and background) |
-| `Alert` | `tone` (error, success), `role` |
+| `Alert` | `tone` (error, success, info), `role` |
+| `ToastProvider` / `useToast` | `showToast(message)`: a short success message in the app's one live region |
 | `ProgressBar` | `value` (percent; the fill stops at 100), `label` (its accessible name), `valueText` (the real figure in words), `tone` (default, warning, danger) |
 | `Skeleton` | `shape` (text, short, amount, pill, figure) |
 | `EmptyState` | `icon`, `title`, `action`, and detail as children |

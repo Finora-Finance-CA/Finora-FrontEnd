@@ -39,7 +39,9 @@ export const MAX_AMOUNT_CENTS = 2_147_483_647
 
 export const MAX_DESCRIPTION_LENGTH = 255
 
+// The range of dates the API accepts, inclusive (validation-rules.md).
 export const MIN_DATE = '1900-01-01'
+export const MAX_DATE = '2100-12-31'
 
 // How many transactions GET /api/transactions returns per page (the API's
 // TRANSACTION_PAGE_SIZE). The API also sends it back as pagination.page_size.

@@ -98,8 +98,8 @@ describe('add forms', () => {
     fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '1.999' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
-    expect(await screen.findByText('Use at most two decimal places, like 12.50.')).toBeInTheDocument()
-    expect(screen.getByText('Choose a category.')).toBeInTheDocument()
+    expect(await screen.findByText('Amount can have at most 2 decimal places, for example 12.50.')).toBeInTheDocument()
+    expect(screen.getByText('Category is required for an expense.')).toBeInTheDocument()
     expect(createTransaction).not.toHaveBeenCalled()
   })
 

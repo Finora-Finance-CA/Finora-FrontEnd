@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createBudget, deleteBudget, getBudgetStatus, listBudgets, updateBudget } from '../api/budgets'
 import { ApiError } from '../api/client'
 import { renderApp } from '../test/renderApp'
+import { findToast } from '../test/toasts'
 
 vi.mock('../api/budgets')
 
@@ -137,7 +138,7 @@ describe('setting and editing a limit (US-32)', () => {
 
     expect(await within(rowFor('Other')).findByText('$75.00 a month')).toBeInTheDocument()
     expect(createBudget).toHaveBeenCalledWith({ category: 'Other', limit_cents: 7500 })
-    expect(within(rowFor('Other')).getByRole('status')).toHaveTextContent('Other limit saved: $75.00 a month.')
+    expect(await findToast('Other limit saved: $75.00 a month.')).toBeInTheDocument()
     // Focus moves in an effect after the saved row is on screen, which on a slow machine
     // runs in a later task than the text appearing.
     await waitFor(() => expect(within(rowFor('Other')).getByRole('button', { name: 'Edit Other limit' })).toHaveFocus())
@@ -222,22 +223,30 @@ describe('setting and editing a limit (US-32)', () => {
     submit('Food')
 
     expect(await within(rowFor('Food')).findByText('No limit set')).toBeInTheDocument()
-    expect(within(rowFor('Food')).getByRole('status')).toHaveTextContent(
-      'That Food limit no longer exists, so it was removed from the list.'
-    )
+    expect(await findToast('That Food limit no longer exists, so it was removed from the list.')).toBeInTheDocument()
     await waitFor(() => expect(listBudgets).toHaveBeenCalledTimes(2))
   })
 })
 
 describe('blocking invalid limits (US-33)', () => {
-  it.each(['', '0', '0.00', '-1', '-25', 'abc', '   '])('blocks %j with a clear message and sends nothing', async (value) => {
+  it.each([
+    ['', 'Limit is required.'],
+    ['   ', 'Limit is required.'],
+    ['0', 'Limit must be greater than 0.'],
+    ['0.00', 'Limit must be greater than 0.'],
+    ['-1', 'Limit must be greater than 0.'],
+    ['-25', 'Limit must be greater than 0.'],
+    ['abc', 'Limit must be a number, for example 12.50.'],
+    ['12abc', 'Limit must be a number, for example 12.50.'],
+    ['21474836.48', 'Limit must be $21,474,836.47 or less.'],
+  ])('blocks %j with a clear message and sends nothing', async (value, message) => {
     await showBudgets()
     const input = await openForm('Other')
     fireEvent.change(input, { target: { value } })
 
     submit('Other')
 
-    expect(input).toHaveAccessibleDescription(expect.stringContaining('Enter a limit greater than zero.'))
+    expect(input).toHaveAccessibleDescription(expect.stringContaining(message))
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveFocus()
     expect(createBudget).not.toHaveBeenCalled()
@@ -250,7 +259,7 @@ describe('blocking invalid limits (US-33)', () => {
 
     submit('Other')
 
-    expect(input).toHaveAccessibleDescription(expect.stringContaining('Use at most two decimal places, like 500.00.'))
+    expect(input).toHaveAccessibleDescription(expect.stringContaining('Limit can have at most 2 decimal places, for example 12.50.'))
     expect(createBudget).not.toHaveBeenCalled()
   })
 
@@ -258,11 +267,11 @@ describe('blocking invalid limits (US-33)', () => {
     await showBudgets()
     const input = await openForm('Other')
     submit('Other')
-    expect(within(rowFor('Other')).getByText('Enter a limit greater than zero.')).toBeInTheDocument()
+    expect(within(rowFor('Other')).getByText('Limit is required.')).toBeInTheDocument()
 
     fireEvent.change(input, { target: { value: '12' } })
 
-    expect(within(rowFor('Other')).queryByText('Enter a limit greater than zero.')).not.toBeInTheDocument()
+    expect(within(rowFor('Other')).queryByText('Limit is required.')).not.toBeInTheDocument()
     expect(input).not.toHaveAttribute('aria-invalid')
   })
 
@@ -287,7 +296,7 @@ describe('blocking invalid limits (US-33)', () => {
   it('shows the API’s message on the field if it still rejects the limit', async () => {
     createBudget.mockRejectedValue(
       new ApiError('validation', 'Some details need fixing. Check the highlighted fields.', {
-        fieldErrors: { limit_cents: 'limit_cents must be greater than zero.' },
+        fieldErrors: { limit_cents: 'Limit must be $21,474,836.47 or less.' },
       })
     )
     await showBudgets()
@@ -296,11 +305,11 @@ describe('blocking invalid limits (US-33)', () => {
 
     submit('Other')
 
-    expect(await within(rowFor('Other')).findByText('Limit must be greater than zero.')).toBeInTheDocument()
+    expect(await within(rowFor('Other')).findByText('Limit must be $21,474,836.47 or less.')).toBeInTheDocument()
     expect(input).toHaveAttribute('aria-invalid', 'true')
   })
 
-  it('shows the API’s 409 message for a duplicate, then reloads so the next Save changes that limit', async () => {
+  it('explains a duplicate (409) in its own words, then reloads so the next Save changes that limit', async () => {
     createBudget.mockRejectedValue(CONFLICT)
     updateBudget.mockImplementation(async (id, payload) => ({ ...FOOD, ...payload }))
     await showBudgets([HOUSING])
@@ -311,7 +320,7 @@ describe('blocking invalid limits (US-33)', () => {
     submit('Food')
 
     expect(await within(rowFor('Food')).findByRole('alert')).toHaveTextContent(
-      'The limit was not saved. You already have a budget for Food. Change that one instead.'
+      'The limit was not saved. You already have a Food limit. Save again to change it.'
     )
     expect(await within(rowFor('Food')).findByText('$500.00 a month')).toBeInTheDocument()
     expect(listBudgets).toHaveBeenCalledTimes(2)
@@ -365,7 +374,7 @@ describe('removing a limit (US-32)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(deleteBudget).toHaveBeenCalledWith('7')
     expect(rowFor('Food')).toHaveTextContent('No limit set')
-    expect(within(rowFor('Food')).getByRole('status')).toHaveTextContent('Food limit removed.')
+    expect(await findToast('Food limit removed.')).toBeInTheDocument()
     await waitFor(() => expect(within(rowFor('Food')).getByRole('button', { name: 'Set limit for Food' })).toHaveFocus())
   })
 
@@ -378,7 +387,7 @@ describe('removing a limit (US-32)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove limit' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(within(rowFor('Food')).getByRole('status')).toHaveTextContent('That Food limit was already removed.')
+    expect(await findToast('That Food limit was already removed.')).toBeInTheDocument()
     expect(rowFor('Food')).toHaveTextContent('No limit set')
   })
 

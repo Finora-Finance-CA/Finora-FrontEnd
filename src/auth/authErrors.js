@@ -1,6 +1,8 @@
 // Turns a Supabase Auth error into a message written for people. Supabase's own text
 // ("Invalid login credentials", "AuthApiError: ...") never reaches the screen.
 
+import { MESSAGES } from '../validation/rules'
+
 const RATE_LIMITED = 'Too many attempts. Wait a minute, then try again.'
 
 /** By Supabase error code. `field` puts the message under that input instead of above the button. */
@@ -10,7 +12,7 @@ const BY_CODE = {
   email_exists: { message: 'An account with this email already exists.' },
   email_not_confirmed: { message: 'Please confirm your email before logging in.' },
   weak_password: { field: 'password', message: 'Please choose a stronger password.' },
-  email_address_invalid: { field: 'email', message: 'Enter a valid email address, like name@example.com.' },
+  email_address_invalid: { field: 'email', message: MESSAGES.email },
   validation_failed: { message: 'Check your email and password, then try again.' },
   signup_disabled: { message: "New accounts can't be created right now. Please try again later." },
   user_banned: { message: "This account can't log in right now." },

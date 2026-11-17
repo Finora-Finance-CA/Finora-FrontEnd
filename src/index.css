@@ -106,6 +106,7 @@
   --menu-min-w: 160px;
   --popover-min-w: 240px;
   --popover-max-w: 360px;
+  --toast-w: 400px;
 
   --duration-fast: 150ms;
   --duration-base: 200ms;
@@ -117,6 +118,8 @@
   --z-sidebar: 10;
   --z-popover: 30;
   --z-overlay: 40;
+  /* Above dialogs, so a message sent as one closes is never hidden behind it. */
+  --z-toast: 45;
   --z-skip: 50;
 
 }

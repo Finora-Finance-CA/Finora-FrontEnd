@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
-import { MIN_DATE } from './constants'
+import { MAX_DATE, MIN_DATE } from './constants'
 import { DATE_PRESETS, matchPreset, presetRange } from './datePresets'
 import { todayLocal } from './dates'
 import './FilterOptions.css'
@@ -56,7 +56,7 @@ export default function DateRangeOptions({ from, to, onChange, rangeReversed = f
                 type="date"
                 value={from}
                 min={MIN_DATE}
-                max={to || undefined}
+                max={to || MAX_DATE}
                 onChange={(event) => onChange({ from: event.target.value })}
               />
             )}
@@ -64,7 +64,7 @@ export default function DateRangeOptions({ from, to, onChange, rangeReversed = f
           <Field
             id={`${idPrefix}-to`}
             label="To"
-            error={rangeReversed ? 'Choose a date on or after the From date.' : undefined}
+            error={rangeReversed ? 'To date must be on or after the From date.' : undefined}
           >
             {(controlProps) => (
               <Input
@@ -72,6 +72,7 @@ export default function DateRangeOptions({ from, to, onChange, rangeReversed = f
                 type="date"
                 value={to}
                 min={from || MIN_DATE}
+                max={MAX_DATE}
                 onChange={(event) => onChange({ to: event.target.value })}
               />
             )}
