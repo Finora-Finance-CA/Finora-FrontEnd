@@ -30,3 +30,4 @@ dist-ssr
 /playwright-report/
 /e2e-screenshots/
 /dist-e2e/
+/playwright-report-live/
