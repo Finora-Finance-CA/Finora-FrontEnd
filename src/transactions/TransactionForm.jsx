@@ -1,6 +1,5 @@
 import { useId } from 'react'
-import SessionEndedMessage from '../components/SessionEndedMessage'
-import Alert from '../components/ui/Alert'
+import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
@@ -127,7 +126,7 @@ export default function TransactionForm({
         {(controlProps) => <Input {...controlProps} {...fieldProps('description')} type="text" autoComplete="off" />}
       </Field>
 
-      {formError && <Alert>{formError.kind === 'unauthorized' ? <SessionEndedMessage /> : <p>{formError.message}</p>}</Alert>}
+      {formError && <ErrorAlert error={formError} />}
 
       <div className="dialog__actions">
         <Button onClick={onCancel} disabled={isSubmitting}>

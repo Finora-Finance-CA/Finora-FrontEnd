@@ -1,13 +1,14 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Button from '../components/ui/Button'
 import IconButton from '../components/ui/IconButton'
-import { addMonths, formatMonth, MIN_MONTH } from './months'
+import { addMonths, formatMonth, MAX_MONTH, MIN_MONTH } from './months'
 import './MonthSelector.css'
 
 /**
  * Previous and Next month buttons around the month's name (US-28). The buttons are
  * named after the month they go to, and the name is announced to screen readers when
- * it changes. "This month" appears when another month is showing, to jump back.
+ * it changes. "This month" appears when another month is showing, to jump back. Neither
+ * button goes outside the months the API accepts (MIN_MONTH to MAX_MONTH).
  *
  * @param {object} props
  * @param {string} props.month YYYY-MM, showing now.
@@ -30,7 +31,12 @@ export default function MonthSelector({ month, current, onChange }) {
         <p className="month-selector__label" aria-live="polite" aria-atomic="true">
           {formatMonth(month)}
         </p>
-        <IconButton icon={ChevronRight} label={`Next month, ${formatMonth(next)}`} onClick={() => onChange(next)} />
+        <IconButton
+          icon={ChevronRight}
+          label={`Next month, ${formatMonth(next)}`}
+          onClick={() => onChange(next)}
+          disabled={next > MAX_MONTH}
+        />
       </div>
       {month !== current && (
         <Button size="sm" onClick={() => onChange(current)}>

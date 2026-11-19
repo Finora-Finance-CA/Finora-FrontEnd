@@ -2,7 +2,7 @@
 // clock is fixed at October 20th 2026, so "this month" is October 2026.
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getBudgetStatus } from '../api/budgets'
 import { ApiError } from '../api/client'
 import { getCategorySpending, getMonthlySummary, getSpendingTrend } from '../api/summary'
@@ -87,14 +87,6 @@ async function showDashboard(path = '/dashboard') {
   renderApp(path)
   await screen.findByText('Total income')
 }
-
-// The page is lazy-loaded with Recharts, the largest chunk in the app. Compiling it for
-// the first time can take far longer than one test's 5 seconds while every test file
-// runs at once, which made the first test here time out in CI now and then. Loading it
-// once up front, with time to spare, means every test finds it ready.
-beforeAll(async () => {
-  await import('./DashboardPage')
-}, 60_000)
 
 beforeEach(() => {
   // Only Date is faked, so Testing Library's waits still run on real timers.

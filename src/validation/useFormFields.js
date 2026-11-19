@@ -101,5 +101,5 @@ export function useFormFields({ initialValues, fields, validate }) {
     }
   }
 
-  return { values, errors, fieldProps, validateAll, showErrors, clearErrors, focusField }
+  return { values, errors, fieldProps, validateAll, showErrors, clearErrors }
 }

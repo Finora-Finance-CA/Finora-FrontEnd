@@ -1,8 +1,7 @@
-import { CircleAlert, Receipt } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
-import ErrorAlert from '../components/ErrorAlert'
-import Button from '../components/ui/Button'
+import ErrorState from '../components/ErrorState'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
@@ -51,15 +50,12 @@ export default function CategorySpendingChart({ month }) {
 
   if (result.status === 'error') {
     return (
-      <Card>
-        <EmptyState
-          icon={CircleAlert}
-          title="Spending by category didn't load"
-          action={result.error?.kind !== 'unauthorized' && <Button onClick={result.reload}>Try again</Button>}
-        >
-          <ErrorAlert error={result.error} context={`We couldn't load your spending for ${formatMonth(month)}.`} />
-        </EmptyState>
-      </Card>
+      <ErrorState
+        title="Spending by category didn't load"
+        error={result.error}
+        context={`We couldn't load your spending for ${formatMonth(month)}.`}
+        onRetry={result.reload}
+      />
     )
   }
 

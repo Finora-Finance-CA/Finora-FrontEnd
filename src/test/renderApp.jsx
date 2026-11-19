@@ -1,7 +1,29 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
+import { beforeAll } from 'vitest'
 import App from '../App'
 import { AuthProvider } from '../context/AuthContext'
+
+// Every page is its own lazy chunk (App.jsx), and the dashboard's charts load Recharts,
+// the largest one. Compiling them for the first time can take longer than a test's 5
+// seconds while every test file runs at once, which made the first test in a file time
+// out now and then. Loading them once, before any test in a file that renders the app,
+// with time to spare, means every test finds them ready. React.lazy then resolves to
+// the same, already loaded modules.
+beforeAll(
+  () =>
+    Promise.all([
+      import('../pages/AuthPage'),
+      import('../pages/BudgetsPage'),
+      import('../pages/DashboardPage'),
+      import('../pages/GoalsPage'),
+      import('../pages/SummaryPage'),
+      import('../pages/TransactionsPage'),
+      import('../dashboard/CategoryBars'),
+      import('../dashboard/TrendBars'),
+    ]),
+  60_000
+)
 
 function CurrentPath() {
   const { pathname, search } = useLocation()

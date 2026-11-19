@@ -10,11 +10,11 @@ describe('currentMonth', () => {
 })
 
 describe('isValidMonth', () => {
-  it.each(['2026-10', '1900-01', '2026-12', '9999-12'])('accepts %s', (value) => {
+  it.each(['2026-10', '1900-01', '2026-12', '2100-12'])('accepts %s', (value) => {
     expect(isValidMonth(value)).toBe(true)
   })
 
-  it.each(['2026-13', '2026-00', '2026-1', '1899-12', '2026-10-01', 'abc', '', null, undefined])('rejects %j', (value) => {
+  it.each(['2026-13', '2026-00', '2026-1', '1899-12', '2101-01', '9999-12', '2026-10-01', 'abc', '', null, undefined])('rejects %j', (value) => {
     expect(isValidMonth(value)).toBe(false)
   })
 })

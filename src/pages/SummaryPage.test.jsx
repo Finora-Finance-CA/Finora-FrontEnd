@@ -122,6 +122,21 @@ describe('month selector (US-28)', () => {
     expect(screen.getByRole('button', { name: /^Previous month/ })).toBeDisabled()
   })
 
+  it('stops Next at December 2100, the latest month the API accepts', async () => {
+    await showSummary('/summary?month=2100-12')
+
+    expect(monthLabel()).toHaveTextContent('December 2100')
+    expect(screen.getByRole('button', { name: /^Next month/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Previous month/ })).toBeEnabled()
+  })
+
+  it('shows this month for a month in the URL after December 2100, instead of asking the API for it', async () => {
+    await showSummary('/summary?month=2101-01')
+
+    expect(monthLabel()).toHaveTextContent('October 2026')
+    expect(getMonthlySummary).not.toHaveBeenCalledWith('2101-01')
+  })
+
   it('keeps the last month’s cards, dimmed, while the next one loads', async () => {
     await showSummary()
     const next = deferred()
