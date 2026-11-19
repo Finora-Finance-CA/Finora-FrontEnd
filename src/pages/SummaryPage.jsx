@@ -1,7 +1,6 @@
-import { CalendarX, CircleAlert } from 'lucide-react'
+import { CalendarX } from 'lucide-react'
 import { Link } from 'react-router'
-import ErrorAlert from '../components/ErrorAlert'
-import Button from '../components/ui/Button'
+import ErrorState from '../components/ErrorState'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import PageHeader from '../components/ui/PageHeader'
@@ -48,15 +47,12 @@ function SummaryContent({ summary, month }) {
 
   if (summary.status === 'error') {
     return (
-      <Card>
-        <EmptyState
-          icon={CircleAlert}
-          title="The summary didn't load"
-          action={summary.error?.kind !== 'unauthorized' && <Button onClick={summary.reload}>Try again</Button>}
-        >
-          <ErrorAlert error={summary.error} context={`We couldn't load the summary for ${formatMonth(month)}.`} />
-        </EmptyState>
-      </Card>
+      <ErrorState
+        title="The summary didn't load"
+        error={summary.error}
+        context={`We couldn't load the summary for ${formatMonth(month)}.`}
+        onRetry={summary.reload}
+      />
     )
   }
 

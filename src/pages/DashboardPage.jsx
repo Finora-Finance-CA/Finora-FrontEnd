@@ -1,18 +1,14 @@
-import { CircleAlert } from 'lucide-react'
-import ErrorAlert from '../components/ErrorAlert'
-import Button from '../components/ui/Button'
-import Card from '../components/ui/Card'
-import EmptyState from '../components/ui/EmptyState'
+import ErrorState from '../components/ErrorState'
 import PageHeader from '../components/ui/PageHeader'
 import MonthSelector from '../summary/MonthSelector'
 import { formatMonth } from '../summary/months'
 import SummaryCards, { SummaryCardsSkeleton } from '../summary/SummaryCards'
 import { useMonthlySummary } from '../summary/useMonthlySummary'
 import { useMonthParam } from '../summary/useMonthParam'
-import './DashboardPage.css'
 import BudgetAlertsPanel from '../dashboard/BudgetAlertsPanel'
 import CategorySpendingChart from '../dashboard/CategorySpendingChart'
 import SpendingTrendChart from '../dashboard/SpendingTrendChart'
+import './DashboardPage.css'
 
 /**
  * /dashboard (US-42): the key numbers for one month in one place. The month is in the
@@ -37,18 +33,18 @@ export default function DashboardPage() {
         </section>
 
         <section className="dashboard__panel" aria-labelledby="dashboard-alerts">
-        <h2 id="dashboard-alerts" className="dashboard__heading">Budget alerts</h2>
-        <BudgetAlertsPanel month={month} />
+          <h2 id="dashboard-alerts" className="dashboard__heading">Budget alerts</h2>
+          <BudgetAlertsPanel month={month} />
         </section>
 
         <section className="dashboard__panel" aria-labelledby="dashboard-categories">
           <h2 id="dashboard-categories" className="dashboard__heading">Spending by category</h2>
-            <CategorySpendingChart month={month} />
+          <CategorySpendingChart month={month} />
         </section>
 
         <section className="dashboard__panel dashboard__panel--wide" aria-labelledby="dashboard-trend">
           <h2 id="dashboard-trend" className="dashboard__heading">Spending over the last 6 months</h2>
-            <SpendingTrendChart month={month} />
+          <SpendingTrendChart month={month} />
         </section>
       </div>
     </div>
@@ -70,15 +66,12 @@ function DashboardSummary({ summary, month }) {
 
   if (summary.status === 'error') {
     return (
-      <Card>
-        <EmptyState
-          icon={CircleAlert}
-          title="The summary didn't load"
-          action={summary.error?.kind !== 'unauthorized' && <Button onClick={summary.reload}>Try again</Button>}
-        >
-          <ErrorAlert error={summary.error} context={`We couldn't load the summary for ${formatMonth(month)}.`} />
-        </EmptyState>
-      </Card>
+      <ErrorState
+        title="The summary didn't load"
+        error={summary.error}
+        context={`We couldn't load the summary for ${formatMonth(month)}.`}
+        onRetry={summary.reload}
+      />
     )
   }
 

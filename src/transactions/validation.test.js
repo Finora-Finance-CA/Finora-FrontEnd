@@ -1,18 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { TRANSACTION_TYPES } from './constants'
-import { mapApiErrors, toTransactionPayload, validateField, validateTransactionForm } from './validation'
+import { mapApiErrors, toTransactionPayload, validateField } from './validation'
 
 const EXPENSE = { categoryRequired: true, fields: TRANSACTION_TYPES.expense.fields }
 const INCOME = { categoryRequired: false, fields: TRANSACTION_TYPES.income.fields }
 const VALID = { amount: '12.50', date: '2026-10-05', category: 'Food', description: 'Lunch' }
 
-describe('validateTransactionForm', () => {
+// Every field the form shows, checked the way useFormFields checks them on submit.
+function errorsFor(values, options) {
+  return Object.fromEntries(
+    options.fields.map((field) => [field, validateField(field, values, options)]).filter(([, message]) => message)
+  )
+}
+
+describe('validateField on every field of the form', () => {
   it('accepts a valid expense', () => {
-    expect(validateTransactionForm(VALID, EXPENSE)).toEqual({})
+    expect(errorsFor(VALID, EXPENSE)).toEqual({})
   })
 
   it('reports every invalid field of an empty expense at once', () => {
-    expect(validateTransactionForm({ amount: '', date: '', category: '', description: '' }, EXPENSE)).toEqual({
+    expect(errorsFor({ amount: '', date: '', category: '', description: '' }, EXPENSE)).toEqual({
       amount: 'Amount is required.',
       date: 'Date is required.',
       category: 'Category is required for an expense.',
@@ -20,7 +27,7 @@ describe('validateTransactionForm', () => {
   })
 
   it('does not ask an income for a category', () => {
-    expect(validateTransactionForm({ ...VALID, category: '' }, INCOME)).toEqual({})
+    expect(errorsFor({ ...VALID, category: '' }, INCOME)).toEqual({})
   })
 })
 

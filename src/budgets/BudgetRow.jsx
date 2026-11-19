@@ -14,16 +14,11 @@ import CategoryLabel from '../transactions/CategoryLabel'
 import { centsToDollarString, formatCents } from '../transactions/money'
 import { parseLimitToCents } from './limits'
 import RemoveBudgetDialog from './RemoveBudgetDialog'
+import { budgetAlert, remainingText } from './budgetAlerts'
 import './BudgetRow.css'
-import { budgetAlert } from './budgetAlerts'
 
 const FIELDS = ['limit']
 const validateLimit = (_field, values) => parseLimitToCents(values.limit).error
-
-// "$95.13 left", or "Over by $23.15" when the limit has been passed (US-37).
-function remainingText(remainingCents) {
-  return remainingCents < 0 ? `Over by ${formatCents(-remainingCents)}` : `${formatCents(remainingCents)} left`
-}
 
 /**
  * One category on the Budgets page (US-32): its monthly limit, or "No limit set", with

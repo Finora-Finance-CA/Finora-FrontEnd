@@ -8,7 +8,7 @@ import { validateCategory, validateDate, validateText } from '../validation/rule
 import { MAX_DESCRIPTION_LENGTH } from './constants'
 import { parseDollarsToCents } from './money'
 
-export const FIELD_NAMES = Object.freeze(['amount', 'date', 'category', 'description'])
+const FIELD_NAMES = Object.freeze(['amount', 'date', 'category', 'description'])
 
 const validators = {
   amount: (values) => parseDollarsToCents(values.amount, 'Amount').error,
@@ -29,26 +29,8 @@ export function validateField(field, values, options) {
 }
 
 /**
- * Checks every field the form shows. Returns { field: message } for each invalid
- * one; an empty object means the form is valid.
- *
- * @param {object} values
- * @param {{ categoryRequired: boolean, fields?: readonly string[] }} options
- *   `fields` defaults to all of FIELD_NAMES.
- */
-export function validateTransactionForm(values, options) {
-  const { fields = FIELD_NAMES } = options
-  const errors = {}
-  for (const field of fields) {
-    const message = validateField(field, values, options)
-    if (message) errors[field] = message
-  }
-  return errors
-}
-
-/**
  * Turns valid form values into the body for POST /api/transactions.
- * Call only after validateTransactionForm returns no errors.
+ * Call only once every field passes validateField.
  *
  * @param {object} values
  * @param {'income'|'expense'} type
