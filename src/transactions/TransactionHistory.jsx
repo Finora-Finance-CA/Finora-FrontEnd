@@ -82,19 +82,15 @@ export default function TransactionHistory({
     showToast(text)
   }
 
-  function handleQueryChange(changes, options) {
-    onQueryChange(changes, options)
-  }
-
   function clearFilters() {
-    handleQueryChange({ q: '', categories: [], from: '', to: '' })
+    onQueryChange({ q: '', categories: [], from: '', to: '' })
     searchRef.current?.focus()
   }
 
   // The button pressed may be disabled on the new page (Next on the last one), so move
   // focus to the top of the list, where the new page starts.
   function goToPage(page) {
-    handleQueryChange({ page })
+    onQueryChange({ page })
     headingRef.current?.focus()
   }
 
@@ -102,7 +98,7 @@ export default function TransactionHistory({
     <section className="transaction-history" aria-labelledby={headingId}>
       <TransactionFilters
         query={query}
-        onChange={handleQueryChange}
+        onChange={onQueryChange}
         onClear={clearFilters}
         rangeReversed={rangeReversed}
         searchRef={searchRef}

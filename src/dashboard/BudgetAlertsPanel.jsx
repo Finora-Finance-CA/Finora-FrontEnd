@@ -1,9 +1,8 @@
-import { CircleAlert, CircleCheck, Wallet } from 'lucide-react'
+import { CircleCheck, Wallet } from 'lucide-react'
 import { Link } from 'react-router'
-import { budgetAlert } from '../budgets/budgetAlerts'
+import { budgetAlert, budgetsNeedingAttention, remainingText } from '../budgets/budgetAlerts'
 import { useBudgetStatus } from '../budgets/useBudgetStatus'
-import ErrorAlert from '../components/ErrorAlert'
-import Button from '../components/ui/Button'
+import ErrorState from '../components/ErrorState'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import ProgressBar from '../components/ui/ProgressBar'
@@ -12,18 +11,6 @@ import { formatMonth } from '../summary/months'
 import CategoryLabel from '../transactions/CategoryLabel'
 import { formatCents } from '../transactions/money'
 import './BudgetAlertsPanel.css'
-
-// Budgets at 80% or more of their limit come first, the fullest at the top. Sorting by
-// spent / limit (not the rounded percent) puts "over by a cent" above "exactly full".
-function alertsFrom(statusByCategory) {
-  return Object.values(statusByCategory ?? {})
-    .filter((budget) => budget.status !== 'under')
-    .sort((a, b) => b.spent_cents / b.limit_cents - a.spent_cents / a.limit_cents)
-}
-
-function remainingText(remainingCents) {
-  return remainingCents < 0 ? `Over by ${formatCents(-remainingCents)}` : `${formatCents(remainingCents)} left`
-}
 
 /**
  * The dashboard's budget alerts (US-41): every category at 80% or more of its limit in
@@ -49,22 +36,18 @@ export default function BudgetAlertsPanel({ month }) {
 
   if (spending.status === 'error') {
     return (
-      <Card>
-        <EmptyState
-          icon={CircleAlert}
-          title="Budget alerts didn't load"
-          action={spending.error?.kind !== 'unauthorized' && <Button onClick={spending.reload}>Try again</Button>}
-        >
-          <ErrorAlert error={spending.error} context={`We couldn't load your budgets for ${formatMonth(month)}.`} />
-        </EmptyState>
-      </Card>
+      <ErrorState
+        title="Budget alerts didn't load"
+        error={spending.error}
+        context={`We couldn't load your budgets for ${formatMonth(month)}.`}
+        onRetry={spending.reload}
+      />
     )
   }
 
-  const budgets = Object.values(spending.statusByCategory ?? {})
-  const alerts = alertsFrom(spending.statusByCategory)
+  const alerts = budgetsNeedingAttention(spending.budgets)
 
-  if (budgets.length === 0) {
+  if (spending.budgets.length === 0) {
     return (
       <Card>
         <EmptyState

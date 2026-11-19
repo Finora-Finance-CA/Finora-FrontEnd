@@ -66,7 +66,7 @@ export function useTransactionForm({
     validate: (field, values) => validateField(field, values, options),
   })
   const { values, errors, validateAll, showErrors, clearErrors } = form
-  // A problem that isn't about one field: { kind, message }.
+  // A problem that isn't about one field: an ApiError, { kind, message }, or a bug.
   const [formError, setFormError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -133,12 +133,10 @@ export function useTransactionForm({
       }
       return
     }
-    // ApiError messages are written for users; anything else is a bug, so stay generic.
+    // ApiError messages are written for users; anything else is a bug, which ErrorAlert
+    // shows with its generic message.
     if (!err?.kind) console.error(err)
-    setFormError({
-      kind: err?.kind ?? 'server',
-      message: err?.kind ? err.message : 'Something went wrong. Please try again.',
-    })
+    setFormError(err)
   }
 
   /** Props to spread onto a field's input or select. */

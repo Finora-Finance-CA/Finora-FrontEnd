@@ -6,7 +6,7 @@
 const MAX_MESSAGE_LENGTH = 200
 
 /** The message if it's safe to show, else null. */
-export function readableMessage(message) {
+function readableMessage(message) {
   if (typeof message !== 'string') return null
   const text = message.trim()
   return text !== '' && text.length <= MAX_MESSAGE_LENGTH ? text : null

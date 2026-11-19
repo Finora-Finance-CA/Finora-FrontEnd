@@ -2,8 +2,9 @@
 // is whole-number arithmetic on the text, so no time zone or daylight saving change can
 // skip or repeat one.
 
-// The API's earliest summary month.
+// The API's earliest and latest summary months; it answers 400 outside them.
 export const MIN_MONTH = '1900-01'
+export const MAX_MONTH = '2100-12'
 
 const MONTH_PATTERN = /^(\d{4})-(\d{2})$/
 
@@ -14,13 +15,13 @@ export function currentMonth(now = new Date()) {
   return `${pad(now.getFullYear(), 4)}-${pad(now.getMonth() + 1, 2)}`
 }
 
-/** True if `value` is a real month as YYYY-MM, from MIN_MONTH on. */
+/** True if `value` is a real month as YYYY-MM, from MIN_MONTH to MAX_MONTH. */
 export function isValidMonth(value) {
   const match = MONTH_PATTERN.exec(value ?? '')
   if (!match) return false
   const month = Number(match[2])
   // Same-format YYYY-MM strings compare correctly as text.
-  return month >= 1 && month <= 12 && value >= MIN_MONTH
+  return month >= 1 && month <= 12 && value >= MIN_MONTH && value <= MAX_MONTH
 }
 
 /**

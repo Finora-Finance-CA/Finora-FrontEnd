@@ -1,9 +1,6 @@
-import { CircleAlert } from 'lucide-react'
 import { useRef, useState } from 'react'
-import ErrorAlert from '../components/ErrorAlert'
-import Button from '../components/ui/Button'
+import ErrorState from '../components/ErrorState'
 import Card from '../components/ui/Card'
-import EmptyState from '../components/ui/EmptyState'
 import PageHeader from '../components/ui/PageHeader'
 import Skeleton from '../components/ui/Skeleton'
 import { useToast } from '../components/ui/useToast'
@@ -104,17 +101,7 @@ function BudgetsContent({ budgets, spending, month, onAddExpense }) {
       if (budgets.status === 'error') budgets.reload()
       if (spending.status === 'error') spending.reload()
     }
-    return (
-      <Card>
-        <EmptyState
-          icon={CircleAlert}
-          title="Budgets didn't load"
-          action={failed.error?.kind !== 'unauthorized' && <Button onClick={retry}>Try again</Button>}
-        >
-          <ErrorAlert error={failed.error} context={context} />
-        </EmptyState>
-      </Card>
-    )
+    return <ErrorState title="Budgets didn't load" error={failed.error} context={context} onRetry={retry} />
   }
 
   const setCount = BUDGET_CATEGORIES.filter((category) => budgets.budgetsByCategory[category]).length

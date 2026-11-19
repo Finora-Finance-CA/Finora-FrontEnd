@@ -117,7 +117,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
   if (response.ok) {
     // The API always answers with a JSON object, or nothing for a 204. Anything else
     // (an HTML error page from a proxy, a cut-off body) would break the page that reads it.
-    if (data === null || (data !== null && typeof data === 'object' && !Array.isArray(data))) return data
+    if (data === null || (typeof data === 'object' && !Array.isArray(data))) return data
     throw new ApiError('server', MESSAGES.server, { status: response.status })
   }
 
