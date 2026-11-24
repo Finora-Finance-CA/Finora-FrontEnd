@@ -42,10 +42,11 @@
 .button--secondary {
   color: var(--text);
   background: var(--surface);
-  border-color: var(--border-field);
+  border-color: var(--border);
 
   &:hover:not(:disabled) {
     background: var(--surface-2);
+    border-color: var(--border-field);
   }
 }
 

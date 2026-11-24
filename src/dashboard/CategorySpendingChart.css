@@ -1,31 +1,31 @@
 /* Recharts writes colours onto the SVG; these rules use the design tokens instead, so
-   the chart follows light and dark mode. */
+   the chart follows light and dark mode. One series, so one colour. */
+.category-chart {
+  padding: var(--space-3) var(--space-5) var(--space-4) var(--space-3);
+
+  @media (max-width: 767px) {
+    padding: var(--space-3) var(--space-4) var(--space-3) var(--space-2);
+  }
+}
+
 .category-chart .recharts-bar-rectangle .recharts-rectangle {
   fill: var(--accent);
 }
 
-.category-chart .recharts-cartesian-axis-tick-value {
-  fill: var(--text-muted);
+.category-chart .recharts-yAxis .recharts-cartesian-axis-tick-value {
+  fill: var(--text);
   font-size: var(--text-xs);
 }
 
-.category-chart .recharts-cartesian-grid line {
-  stroke: var(--border);
+.category-chart .recharts-xAxis .recharts-cartesian-axis-tick-value {
+  fill: var(--text-muted);
+  font-size: var(--text-xs);
 }
 
 .category-chart .recharts-label {
   fill: var(--text);
   font-size: var(--text-xs);
-}
-
-.category-chart__cursor {
-  fill: var(--surface-3);
-}
-
-.category-chart__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  font-weight: var(--weight-medium);
 }
 
 /* Figures line up digit for digit, like every other amount in the app. */
@@ -33,7 +33,40 @@
   font-variant-numeric: tabular-nums;
 }
 
+.category-chart__cursor {
+  fill: var(--surface-2);
+}
+
+/* The month's total, beside the panel's title. */
+.chart-total {
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+/* Placeholder bars of different lengths under their labels. */
+.category-chart__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.category-chart__skeleton-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+
+  &:nth-child(2n) .skeleton--bar {
+    width: 60%;
+  }
+
+  &:nth-child(3n) .skeleton--bar {
+    width: 35%;
+  }
+}
+
 /* Where the chart goes while its code downloads: the same height, so nothing moves. */
 .category-chart__placeholder {
-  height: 240px;
+  height: 220px;
 }

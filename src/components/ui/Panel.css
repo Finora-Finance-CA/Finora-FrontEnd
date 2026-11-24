@@ -1,0 +1,41 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-4) var(--space-5) 0;
+
+  @media (max-width: 767px) {
+    padding: var(--space-4) var(--space-4) 0;
+  }
+}
+
+.panel__title {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.panel__action {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+
+  /* A link on its own gets a 44px tap area; the negative margin keeps the header's
+     height where the text puts it. */
+  a {
+    display: inline-block;
+    padding: var(--space-3) 0;
+    margin: calc(var(--space-3) * -1) 0;
+    line-height: 20px;
+  }
+}
+
+.panel__body {
+  flex: 1;
+  min-width: 0;
+}

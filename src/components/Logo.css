@@ -1,9 +1,8 @@
 .logo {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
   font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
   color: var(--text);
 }

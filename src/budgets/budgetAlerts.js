@@ -1,22 +1,27 @@
 // How each budget status from the API (US-35) is shown: the progress bar's tone and a
-// short label (US-39, US-40). The API decides the status; this only decides its look,
+// status word (US-39, US-40). The API decides the status; this only decides its look,
 // so the Budgets page and the dashboard alerts (US-41) always agree.
 
 import { formatCents } from '../transactions/money'
 
-const ALERTS = {
-  under: { tone: 'default', label: null },
-  warning: { tone: 'warning', label: 'Close to limit' },
-  over: { tone: 'danger', label: 'Over budget' },
-}
+const TONES = { under: 'default', warning: 'warning', over: 'danger' }
 
 /**
  * @param {'under'|'warning'|'over'} status From the budget status endpoint.
+ * @param {number} [remainingCents] What's left of the limit, negative when over. An
+ *   over budget's word says by how much ("Over by $23.15").
  * @returns {{ tone: 'default'|'warning'|'danger', label: string|null }}
- *   An unknown status is shown as under, with no label.
+ *   "On track", "Close to limit" or "Over by $X". An unknown status is shown like
+ *   under, with no word, since nothing is known about it.
  */
-export function budgetAlert(status) {
-  return ALERTS[status] ?? ALERTS.under
+export function budgetAlert(status, remainingCents) {
+  if (status === 'under') return { tone: 'default', label: 'On track' }
+  if (status === 'warning') return { tone: 'warning', label: 'Close to limit' }
+  if (status === 'over') {
+    const label = Number.isInteger(remainingCents) && remainingCents < 0 ? remainingText(remainingCents) : 'Over budget'
+    return { tone: TONES.over, label }
+  }
+  return { tone: 'default', label: null }
 }
 /** "$95.13 left", or "Over by $23.15" when the limit has been passed (US-37). */
 export function remainingText(remainingCents) {

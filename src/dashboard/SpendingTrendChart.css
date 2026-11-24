@@ -1,6 +1,19 @@
 /* Recharts writes colours onto the SVG; these use the design tokens instead, so the
-   chart follows light and dark mode. */
-.trend-chart .recharts-bar-rectangle .recharts-rectangle {
+   chart follows light and dark mode. The chosen month is the accent; the months before
+   it are a neutral that still stands 3:1 off the panel. */
+.trend-chart {
+  padding: var(--space-3) var(--space-5) var(--space-4);
+
+  @media (max-width: 767px) {
+    padding: var(--space-3) var(--space-3) var(--space-3);
+  }
+}
+
+.trend-chart .recharts-bar-rectangle .recharts-rectangle.trend-chart__bar {
+  fill: var(--border-field);
+}
+
+.trend-chart .recharts-bar-rectangle .recharts-rectangle.trend-chart__bar--current {
   fill: var(--accent);
 }
 
@@ -9,23 +22,10 @@
   font-size: var(--text-xs);
 }
 
-.trend-chart .recharts-cartesian-grid line {
-  stroke: var(--border);
-}
-
 .trend-chart .recharts-label {
   fill: var(--text);
   font-size: var(--text-xs);
-}
-
-.trend-chart__cursor {
-  fill: var(--surface-3);
-}
-
-.trend-chart__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  font-weight: var(--weight-medium);
 }
 
 /* Figures line up digit for digit, like every other amount in the app. */
@@ -33,7 +33,34 @@
   font-variant-numeric: tabular-nums;
 }
 
+.trend-chart__cursor {
+  fill: var(--surface-2);
+}
+
+/* Six placeholder bars of different heights along a baseline. */
+.trend-chart__skeleton {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-5);
+  height: 220px;
+  padding: var(--space-6) var(--space-5) var(--space-6);
+}
+
+.trend-chart__skeleton .trend-chart__skeleton-bar {
+  flex: 1;
+  max-width: none;
+  height: 70%;
+
+  &:nth-child(2n) {
+    height: 55%;
+  }
+
+  &:nth-child(3n) {
+    height: 85%;
+  }
+}
+
 /* Where the chart goes while its code downloads: the same height, so nothing moves. */
 .trend-chart__placeholder {
-  height: 260px;
+  height: 220px;
 }

@@ -1,4 +1,4 @@
-import { Plus, Target } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import ErrorState from '../components/ErrorState'
 import Button from '../components/ui/Button'
@@ -18,8 +18,8 @@ import '../goals/Goals.css'
 const GONE = 'That goal no longer exists, so it was removed from the list.'
 
 /**
- * /goals (US-40, US-49, US-50): every savings goal as a card with its progress, and the
- * dialogs to add, edit, contribute to and delete one. Built like the Budgets page: the
+ * /goals (US-40, US-49, US-50): every savings goal as a row in one list, with its
+ * progress, and the dialogs to add, edit, contribute to and delete one. Built like the Budgets page: the
  * shared page layout and header, a loading state, an error with Try again, an empty
  * state, and a short toast after each save or delete.
  */
@@ -42,7 +42,7 @@ export default function GoalsPage() {
 
   function handleSaved(goal) {
     goals.showSaved(goal)
-    showToast(dialog.type === 'create' ? 'Goal created.' : 'Goal updated.')
+    showToast(dialog.type === 'create' ? 'Goal added.' : 'Goal updated.')
     close()
   }
 
@@ -70,7 +70,6 @@ export default function GoalsPage() {
     <div className="page">
       <PageHeader
         title="Savings goals"
-        subtitle="Set a target for something you’re saving toward, and add to it as you go."
         actions={
           <Button
             ref={addButtonRef}
@@ -105,15 +104,18 @@ function GoalsContent({ goals, onOpen }) {
         <p className="visually-hidden" role="status">
           Loading goals…
         </p>
-        <ul className="goal-list" aria-hidden="true">
-          {[0, 1, 2].map((index) => (
-            <Card as="li" key={index} className="goal-card">
-              <Skeleton shape="short" />
-              <Skeleton shape="text" />
-              <Skeleton shape="short" />
-            </Card>
-          ))}
-        </ul>
+        <Card padded={false} aria-hidden="true">
+          <ul className="goal-list">
+            {[0, 1, 2].map((index) => (
+              <li key={index} className="goal-row">
+                <Skeleton shape="text" />
+                <Skeleton shape="figure" />
+                <Skeleton shape="bar" />
+                <Skeleton shape="short" />
+              </li>
+            ))}
+          </ul>
+        </Card>
       </>
     )
   }
@@ -131,13 +133,12 @@ function GoalsContent({ goals, onOpen }) {
 
   if (goals.goals.length === 0) {
     return (
-      <Card>
+      <Card padded={false}>
         <EmptyState
-          icon={Target}
           title="No savings goals yet"
           action={
             // Secondary, so the header's Add goal stays the page's one primary action.
-            <Button icon={Plus} aria-haspopup="dialog" onClick={(event) => onOpen('create', null, event.currentTarget)}>
+            <Button aria-haspopup="dialog" onClick={(event) => onOpen('create', null, event.currentTarget)}>
               Add your first goal
             </Button>
           }
@@ -149,16 +150,18 @@ function GoalsContent({ goals, onOpen }) {
   }
 
   return (
-    <ul className="goal-list" aria-label="Savings goals">
-      {goals.goals.map((goal) => (
-        <GoalCard
-          key={goal.id}
-          goal={goal}
-          onContribute={(item, opener) => onOpen('contribute', item, opener)}
-          onEdit={(item, opener) => onOpen('edit', item, opener)}
-          onDelete={(item, opener) => onOpen('delete', item, opener)}
-        />
-      ))}
-    </ul>
+    <Card padded={false}>
+      <ul className="goal-list" aria-label="Savings goals">
+        {goals.goals.map((goal) => (
+          <GoalCard
+            key={goal.id}
+            goal={goal}
+            onContribute={(item, opener) => onOpen('contribute', item, opener)}
+            onEdit={(item, opener) => onOpen('edit', item, opener)}
+            onDelete={(item, opener) => onOpen('delete', item, opener)}
+          />
+        ))}
+      </ul>
+    </Card>
   )
 }

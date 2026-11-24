@@ -1,7 +1,7 @@
 .skeleton {
   display: block;
   height: 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   background: var(--surface-3);
   animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
@@ -20,15 +20,19 @@
   margin-left: auto;
 }
 
-.skeleton--pill {
-  width: 72px;
-  height: var(--pill-h);
-  border-radius: var(--radius-pill);
+.skeleton--bar {
+  width: 100%;
+  height: var(--bar-h);
 }
 
 .skeleton--figure {
   width: 140px;
-  height: 32px;
+  height: 28px;
+}
+
+.skeleton--hero {
+  width: 220px;
+  height: 40px;
 }
 
 @keyframes skeleton-pulse {

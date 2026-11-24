@@ -1,5 +1,5 @@
 import Checkbox from '../components/ui/Checkbox'
-import { CATEGORIES, CATEGORY_COLORS } from './constants'
+import { CATEGORIES } from './constants'
 import './FilterOptions.css'
 
 /**
@@ -27,7 +27,6 @@ export default function CategoryOptions({ selected, onChange }) {
           name="category"
           value={category}
           label={category}
-          swatch={{ light: CATEGORY_COLORS[category].light.text, dark: CATEGORY_COLORS[category].dark.text }}
           checked={selected.includes(category)}
           onChange={(event) => toggle(category, event.target.checked)}
         />

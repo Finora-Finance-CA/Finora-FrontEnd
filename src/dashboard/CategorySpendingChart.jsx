@@ -1,9 +1,8 @@
-import { Receipt } from 'lucide-react'
 import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
 import ErrorState from '../components/ErrorState'
-import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import Panel from '../components/ui/Panel'
 import Skeleton from '../components/ui/Skeleton'
 import { formatMonth } from '../summary/months'
 import { formatCents } from '../transactions/money'
@@ -14,6 +13,8 @@ import './CategorySpendingChart.css'
 // The chart itself (Recharts) is its own chunk, so only the dashboard downloads it (US-62).
 const loadCategoryBars = () => import('./CategoryBars')
 const CategoryBars = lazy(loadCategoryBars)
+
+const TITLE = 'Spending by category'
 
 /**
  * The dashboard's spending by category (US-43): a bar per expense category for the
@@ -35,27 +36,33 @@ export default function CategorySpendingChart({ month }) {
 
   if (result.status === 'loading') {
     return (
-      <Card>
+      <Panel title={TITLE}>
         <p className="visually-hidden" role="status">
           Loading spending by category…
         </p>
         <div aria-hidden="true" className="category-chart__skeleton">
-          <Skeleton shape="text" />
-          <Skeleton shape="text" />
-          <Skeleton shape="text" />
+          {[0, 1, 2, 3, 4].map((index) => (
+            <div key={index} className="category-chart__skeleton-row">
+              <Skeleton shape="short" />
+              <Skeleton shape="bar" />
+            </div>
+          ))}
         </div>
-      </Card>
+      </Panel>
     )
   }
 
   if (result.status === 'error') {
     return (
-      <ErrorState
-        title="Spending by category didn't load"
-        error={result.error}
-        context={`We couldn't load your spending for ${formatMonth(month)}.`}
-        onRetry={result.reload}
-      />
+      <Panel title={TITLE}>
+        <ErrorState
+          bare
+          title="Spending by category didn't load"
+          error={result.error}
+          context={`We couldn't load your spending for ${formatMonth(month)}.`}
+          onRetry={result.reload}
+        />
+      </Panel>
     )
   }
 
@@ -63,9 +70,8 @@ export default function CategorySpendingChart({ month }) {
 
   if (total === 0) {
     return (
-      <Card>
+      <Panel title={TITLE}>
         <EmptyState
-          icon={Receipt}
           title={`No expenses in ${formatMonth(month)}`}
           action={
             <Link to="/transactions" className="button button--secondary">
@@ -75,16 +81,16 @@ export default function CategorySpendingChart({ month }) {
         >
           Expenses you add for this month will be shown here by category.
         </EmptyState>
-      </Card>
+      </Panel>
     )
   }
 
   return (
-    <Card aria-busy={result.isRefreshing}>
+    <Panel title={TITLE} action={<span className="chart-total">{formatCents(total)} spent</span>} busy={result.isRefreshing}>
       <div className="category-chart" aria-hidden="true" ref={chartRef}>
         {/* Holds the chart's space while its code arrives, so nothing jumps. */}
         <Suspense fallback={<div className="category-chart__placeholder" />}>
-          <CategoryBars categories={categories} compact={compact} />
+          <CategoryBars categories={categories} compact={compact} shortLabels={chartWidth > 0 && chartWidth < 380} />
         </Suspense>
       </div>
 
@@ -115,6 +121,6 @@ export default function CategorySpendingChart({ month }) {
           </tfoot>
         </table>
       </div>
-    </Card>
+    </Panel>
   )
 }

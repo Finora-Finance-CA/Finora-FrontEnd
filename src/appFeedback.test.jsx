@@ -119,12 +119,12 @@ describe('a slow server', () => {
 
     const done = trackRequest()
     act(() => vi.advanceTimersByTime(4999))
-    expect(screen.queryByText('Waking up the server, this can take up to a minute.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Starting the server, this can take up to a minute.')).not.toBeInTheDocument()
 
     act(() => vi.advanceTimersByTime(1))
-    expect(screen.getByText('Waking up the server, this can take up to a minute.')).toBeInTheDocument()
+    expect(screen.getByText('Starting the server, this can take up to a minute.')).toBeInTheDocument()
 
     act(() => done())
-    expect(screen.queryByText('Waking up the server, this can take up to a minute.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Starting the server, this can take up to a minute.')).not.toBeInTheDocument()
   })
 })

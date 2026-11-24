@@ -20,7 +20,7 @@ for (const width of [375, 320]) {
       await drawer.getByRole('button', { name: 'Save expense' }).tap()
 
       await expect(drawer).toBeHidden()
-      await expect(page.locator('[data-live-region]')).toContainText('Expense of $18.75 saved.')
+      await expect(page.locator('[data-live-region]')).toContainText('Expense of $18.75 added.')
       const firstRow = page.getByRole('table', { name: 'Transaction history' }).getByRole('row').nth(1)
       await expect(firstRow).toContainText('Coffee beans')
       await expect(firstRow).toContainText('$18.75')

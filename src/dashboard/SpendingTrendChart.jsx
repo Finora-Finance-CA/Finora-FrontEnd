@@ -1,9 +1,8 @@
-import { TrendingUp } from 'lucide-react'
 import { lazy, Suspense, useEffect } from 'react'
 import { Link } from 'react-router'
 import ErrorState from '../components/ErrorState'
-import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import Panel from '../components/ui/Panel'
 import Skeleton from '../components/ui/Skeleton'
 import { formatMonth } from '../summary/months'
 import { formatCents } from '../transactions/money'
@@ -27,6 +26,8 @@ function axisMonth(month, index, compact) {
 const loadTrendBars = () => import('./TrendBars')
 const TrendBars = lazy(loadTrendBars)
 
+const TITLE = 'Spending over the last 6 months'
+
 /**
  * The dashboard's spending over the last 6 months (US-44): a bar per month, ending at
  * the chosen month, with each month's total on its bar and on hover. Hidden from screen
@@ -35,8 +36,8 @@ const TrendBars = lazy(loadTrendBars)
 export default function SpendingTrendChart({ month }) {
   const result = useSpendingTrend(month)
   const [chartRef, chartWidth] = useContainerWidth()
-  // On a phone (US-56): month names only, every one shown, and no figure on top of each
-  // bar, where six of them would run into each other. Tapping a bar shows its total.
+  // On a phone (US-56): month names only and narrower gaps, so all six short totals
+  // ("$2.2K") fit over their bars. Tapping a bar shows the exact total.
   const compact = isCompactWidth(chartWidth)
 
   // Start downloading the chart's code at once, alongside the data, rather than after it.
@@ -46,26 +47,30 @@ export default function SpendingTrendChart({ month }) {
 
   if (result.status === 'loading') {
     return (
-      <Card>
+      <Panel title={TITLE}>
         <p className="visually-hidden" role="status">
           Loading spending over the last 6 months…
         </p>
         <div aria-hidden="true" className="trend-chart__skeleton">
-          <Skeleton shape="text" />
-          <Skeleton shape="text" />
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <Skeleton key={index} className="trend-chart__skeleton-bar" />
+          ))}
         </div>
-      </Card>
+      </Panel>
     )
   }
 
   if (result.status === 'error') {
     return (
-      <ErrorState
-        title="Spending over time didn't load"
-        error={result.error}
-        context="We couldn't load your spending over the last 6 months."
-        onRetry={result.reload}
-      />
+      <Panel title={TITLE}>
+        <ErrorState
+          bare
+          title="Spending over time didn't load"
+          error={result.error}
+          context="We couldn't load your spending over the last 6 months."
+          onRetry={result.reload}
+        />
+      </Panel>
     )
   }
 
@@ -74,9 +79,8 @@ export default function SpendingTrendChart({ month }) {
 
   if (months.every(({ expense_cents }) => expense_cents === 0)) {
     return (
-      <Card>
+      <Panel title={TITLE}>
         <EmptyState
-          icon={TrendingUp}
           title="No expenses in the last 6 months"
           action={
             <Link to="/transactions" className="button button--secondary">
@@ -86,14 +90,14 @@ export default function SpendingTrendChart({ month }) {
         >
           Expenses from {first ? formatMonth(first) : 'the last 6 months'} to {formatMonth(month)} will be shown here.
         </EmptyState>
-      </Card>
+      </Panel>
     )
   }
 
   const data = months.map((item, index) => ({ ...item, label: axisMonth(item.month, index, compact) }))
 
   return (
-    <Card aria-busy={result.isRefreshing}>
+    <Panel title={TITLE} busy={result.isRefreshing}>
       <div className="trend-chart" aria-hidden="true" ref={chartRef}>
         {/* Holds the chart's space while its code arrives, so nothing jumps. */}
         <Suspense fallback={<div className="trend-chart__placeholder" />}>
@@ -124,6 +128,6 @@ export default function SpendingTrendChart({ month }) {
           </tbody>
         </table>
       </div>
-    </Card>
+    </Panel>
   )
 }

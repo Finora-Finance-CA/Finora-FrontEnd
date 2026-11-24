@@ -48,7 +48,8 @@
   width: 100%;
   min-height: var(--control-h-sm);
   padding: 0 var(--space-4);
-  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - var(--space-1));
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-muted);
@@ -61,7 +62,7 @@
 .segmented__input:checked + .segmented__label {
   color: var(--text);
   background: var(--surface);
-  box-shadow: 0 0 0 1px var(--border);
+  border-color: var(--border);
 }
 
 .segmented__input:focus-visible + .segmented__label {

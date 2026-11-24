@@ -1,15 +1,13 @@
 .progress-bar {
-  /* Thin enough to sit under a line of text, thick enough to read at a glance. */
-  height: var(--space-2);
+  /* Thin and square-ended, like a rule under a line of figures. */
+  height: var(--bar-h);
   overflow: hidden;
-  border-radius: var(--radius-pill);
   background: var(--surface-3);
 }
 
 /* Scaled, not resized, so a change animates without moving anything around it. */
 .progress-bar__fill {
   height: 100%;
-  border-radius: inherit;
   transform-origin: left;
   transform: scaleX(var(--progress, 0));
   background: var(--progress-fill, var(--accent));

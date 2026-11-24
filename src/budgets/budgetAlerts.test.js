@@ -6,11 +6,21 @@ import { budgetAlert, budgetsNeedingAttention, remainingText } from './budgetAle
 
 describe('budgetAlert', () => {
   it.each([
-    ['under', 'default', null],
+    ['under', 'default', 'On track'],
     ['warning', 'warning', 'Close to limit'],
     ['over', 'danger', 'Over budget'],
   ])('shows %s with the %s tone and label %j', (status, tone, label) => {
     expect(budgetAlert(status)).toEqual({ tone, label })
+  })
+
+  it('says how far over the limit an over budget is', () => {
+    expect(budgetAlert('over', -2315)).toEqual({ tone: 'danger', label: 'Over by $23.15' })
+    expect(budgetAlert('over', -1)).toEqual({ tone: 'danger', label: 'Over by $0.01' })
+  })
+
+  it('keeps the under and close-to-limit words whatever is left', () => {
+    expect(budgetAlert('under', 8000).label).toBe('On track')
+    expect(budgetAlert('warning', 0).label).toBe('Close to limit')
   })
 
   it.each([undefined, null, '', 'unknown'])('shows %j like under, with no label', (status) => {

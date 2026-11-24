@@ -69,7 +69,7 @@ describe('add forms', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
-    expect(await screen.findByText('Expense of $12.50 saved.')).toBeInTheDocument()
+    expect(await screen.findByText('Expense of $12.50 added.')).toBeInTheDocument()
     expect(createTransaction).toHaveBeenCalledWith(
       expect.objectContaining({ amount_cents: 1250, type: 'expense', category: 'Food' })
     )
@@ -85,7 +85,7 @@ describe('add forms', () => {
     fireEvent.change(screen.getByLabelText('Amount ($)'), { target: { value: '2,000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save income' }))
 
-    expect(await screen.findByText('Income of $2,000.00 saved.')).toBeInTheDocument()
+    expect(await screen.findByText('Income of $2,000.00 added.')).toBeInTheDocument()
     const sent = createTransaction.mock.calls[0][0]
     expect(sent).toMatchObject({ amount_cents: 200000, type: 'income' })
     expect(sent).not.toHaveProperty('category')

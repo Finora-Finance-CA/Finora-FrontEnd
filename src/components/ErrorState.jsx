@@ -1,4 +1,3 @@
-import { CircleAlert, WifiOff } from 'lucide-react'
 import ErrorAlert from './ErrorAlert'
 import Button from './ui/Button'
 import Card from './ui/Card'
@@ -14,18 +13,13 @@ import EmptyState from './ui/EmptyState'
  * @param {import('../api/client').ApiError|Error} props.error
  * @param {string} [props.context] What failed, before the reason, e.g. "We couldn't load your goals."
  * @param {() => void} props.onRetry
+ * @param {boolean} [props.bare] Leave out the panel, for a place that already has one.
  */
-export default function ErrorState({ title, error, context, onRetry }) {
-  const offline = error?.kind === 'network' && typeof navigator !== 'undefined' && navigator.onLine === false
-  return (
-    <Card>
-      <EmptyState
-        icon={offline ? WifiOff : CircleAlert}
-        title={title}
-        action={error?.kind !== 'unauthorized' && <Button onClick={onRetry}>Try again</Button>}
-      >
-        <ErrorAlert error={error} context={context} />
-      </EmptyState>
-    </Card>
+export default function ErrorState({ title, error, context, onRetry, bare = false }) {
+  const content = (
+    <EmptyState title={title} action={error?.kind !== 'unauthorized' && <Button onClick={onRetry}>Try again</Button>}>
+      <ErrorAlert error={error} context={context} />
+    </EmptyState>
   )
+  return bare ? content : <Card padded={false}>{content}</Card>
 }

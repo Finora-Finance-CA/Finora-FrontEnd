@@ -1,69 +1,79 @@
 /* Finora's design tokens and base styles. Components use these variables only: no
    hard-coded colours, sizes or durations in component stylesheets. Dark mode follows
    the operating system. Every text colour below is at least 4.5:1 (WCAG AA) against
-   every surface it sits on, in both modes. */
+   every surface it sits on, in both modes; ratios are noted where it matters.
+
+   The look is a paper ledger: an off-white page, green-black ink, one green for money
+   that's in or on track, amber only when a budget is close, red only when it's over or
+   something is about to be deleted. Hierarchy comes from size, weight and spacing. */
 
 :root {
   color-scheme: light;
 
-  /* Surfaces, from the page background up. */
-  --bg: #f7f8fa;
+  /* Surfaces, from the page up. Panels are white on the page with a 1px rule. */
+  --bg: #f6f7f5;
   --surface: #ffffff;
-  --surface-2: #f1f3f5;
-  --surface-3: #e8ebef;
-  --border: #e2e5e9;
-  /* Edges of inputs, checkboxes and other controls: at least 3:1 against the page. */
-  --border-field: #80878f;
+  --surface-2: #eef1ef;
+  --surface-3: #e4e8e5;
+  --border: #dce1dd;
+  /* Edges of inputs, checkboxes and other controls: 3.36:1 on the page. */
+  --border-field: #7f8983;
 
-  --text: #14171c;
-  --text-muted: #5c6470;
+  /* Ink 15.4:1 on the page; muted 5.56:1 on the page, 5.98:1 on a panel. */
+  --text: #17211c;
+  --text-muted: #5b6660;
 
-  /* The one accent (Cobalt). --accent is filled behind --on-accent text (6.47:1);
-     --accent-text is for links and selected text (6.86:1 on the page). */
-  --accent: #3451d1;
-  --accent-hover: #2a43b5;
+  /* Ledger green, the one accent: primary actions, income, on track, focus. White on
+     it is 6.43:1; as text it's 5.98:1 on the page. */
+  --accent: #1e6b4e;
+  --accent-hover: #175a41;
   --on-accent: #ffffff;
-  --accent-text: #3149c4;
-  --accent-tint: #eef1fd;
-  --ring: #3451d1;
+  --accent-text: #1e6b4e;
+  --accent-tint: #e8f1ec;
+  --ring: #1e6b4e;
 
-  /* Green, amber and red are kept for money and status only. */
-  --positive: #067647;
-  --positive-bg: #ecfdf3;
+  /* Money and status. Income is the accent: money in is the good news. */
+  --positive: var(--accent);
+  --positive-bg: var(--accent-tint);
+  /* Over budget, errors and destructive actions only. 6.12:1 on the page. */
   --negative: #b42318;
-  --negative-bg: #fef3f2;
-  /* Close to a limit (US-39). 5.2:1 or more on every light surface and on --warning-bg,
-     and 4.5:1 against a progress bar's track. */
-  --warning: #b54708;
-  --warning-bg: #fffaeb;
+  --negative-bg: #fbecea;
+  /* Close to a limit. The bar fill is 3:1 against its track (enough for a shape); the
+     words use the darker --warning-text, 5.57:1 on a panel. */
+  --warning: #b5770b;
+  --warning-text: #8f5e08;
+  --warning-bg: #fbf3e4;
   --danger: #b42318;
   --danger-hover: #912018;
   --on-danger: #ffffff;
 
-  --scrim: rgb(13 14 17 / 0.5);
-  --shadow-popover: 0 4px 16px rgb(16 24 40 / 0.12), 0 1px 3px rgb(16 24 40 / 0.08);
-  --shadow-overlay: 0 16px 48px rgb(16 24 40 / 0.18);
+  /* Shadows belong to floating layers only: menus, popovers, dialogs, toasts. */
+  --scrim: rgb(15 21 18 / 0.45);
+  --shadow-popover: 0 4px 16px rgb(23 33 28 / 0.1), 0 1px 3px rgb(23 33 28 / 0.08);
+  --shadow-overlay: 0 16px 48px rgb(23 33 28 / 0.18);
 
-  /* Type: Inter, 12 / 14 / 16 / 20 / 24 / 32. */
-  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --text-xs: 12px;
-  --leading-xs: 16px;
-  --text-sm: 14px;
-  --leading-sm: 20px;
-  --text-md: 16px;
-  --leading-md: 24px;
-  --text-lg: 20px;
-  --leading-lg: 28px;
-  --text-xl: 24px;
-  --leading-xl: 32px;
-  --text-2xl: 32px;
-  --leading-2xl: 40px;
+  /* Type: IBM Plex Sans on a 13 / 15 / 18 / 22 / 26 / 32 scale, base 15. Inputs are 16px
+     so phones don't zoom in on focus. */
+  --font-sans: 'IBM Plex Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 13px; /* captions, table headers, axis labels */
+  --text-sm: 15px; /* body, buttons, labels, table cells */
+  --text-md: 18px; /* panel headings */
+  --text-lg: 22px; /* page titles */
+  --text-xl: 26px; /* figures */
+  --text-2xl: 32px; /* the one lead figure on a page */
+  --text-input: 16px;
+  --leading-xs: 1.45;
+  --leading-sm: 1.5;
+  --leading-md: 1.3;
+  --leading-lg: 1.2;
+  --leading-xl: 1.2;
+  --leading-2xl: 1.15;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
-  --tracking-tight: -0.01em;
 
-  /* Spacing on an 8px grid, with 4px for tight gaps. */
+  /* Spacing on an 8px grid, with 4px for tight gaps. Gaps between groups are clearly
+     larger than gaps inside them. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -74,12 +84,12 @@
   --space-8: 48px;
   --space-9: 64px;
 
+  /* Radius by role: inputs and tags, buttons, panels, drawers and modals. A radius
+     inside a padded box is the outer one minus the padding. */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --radius-pill: 999px;
-
-  --radius-xs: 4px;
 
   /* Every control is at least 44px tall, so it's easy to tap. Compact controls look
      36px tall and stretch their tap area by --hit-extend on each side. */
@@ -88,32 +98,37 @@
   --hit-extend: 4px;
   --checkbox-size: 18px;
   --check-size: 14px;
-  --swatch-size: 10px;
-  --pill-h: 22px;
   --badge-size: 20px;
+  --bar-h: 6px;
   --icon-sm: 16px;
   --icon-md: 20px;
+  --icon-stroke: 1.75;
   --focus-width: 2px;
 
-  --sidebar-w: 240px;
+  --sidebar-w: 232px;
   --topbar-h: 56px;
-  --content-max: 1160px;
-  --page-pad: var(--space-6);
+  --content-max: 1120px;
+  --page-pad: var(--space-7);
+  --section-gap: var(--space-6);
   --drawer-w: 440px;
   --dialog-w: 440px;
   --nav-sheet-w: 300px;
-  --auth-w: 400px;
+  --auth-w: 380px;
   --menu-min-w: 160px;
   --popover-min-w: 240px;
   --popover-max-w: 360px;
   --toast-w: 400px;
 
+  /* Motion answers an action (a layer opening, a bar changing, a row just saved) and
+     nothing else: no entrance animations. */
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   /* How far overlays travel as they appear: drawers and sheets, then menus. */
   --motion-shift: 24px;
   --motion-nudge: 4px;
+  /* How long a just-saved row stays highlighted. */
+  --highlight-hold: 1600ms;
 
   --z-sidebar: 10;
   --z-popover: 30;
@@ -121,37 +136,41 @@
   /* Above dialogs, so a message sent as one closes is never hidden behind it. */
   --z-toast: 45;
   --z-skip: 50;
-
 }
 
+/* Dark: a green-black page, never pure black, with the same roles. */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --bg: #0d0e11;
-    --surface: #15171b;
-    --surface-2: #1c1f24;
-    --surface-3: #252930;
-    --border: #2a2e35;
-    --border-field: #69707c;
+    --bg: #0f1512;
+    --surface: #161d19;
+    --surface-2: #1c2420;
+    --surface-3: #26302b;
+    --border: #26302b;
+    /* 4.31:1 on the page. */
+    --border-field: #717d77;
 
-    --text: #e9ebee;
-    --text-muted: #9da4ae;
+    /* Ink 15.5:1; muted 7.34:1 on the page, 6.81:1 on a panel. */
+    --text: #e7ece9;
+    --text-muted: #9aa6a0;
 
-    --accent: #4a68ea;
-    --accent-hover: #5b77ee;
-    --accent-text: #8ea6ff;
-    --accent-tint: #1d2340;
-    --ring: #8ea6ff;
+    /* 7.31:1 on the page. White on this green would fail, so filled buttons use the
+       page colour for their text (7.31:1). */
+    --accent: #4fb58a;
+    --accent-hover: #63c299;
+    --on-accent: #0f1512;
+    --accent-text: #4fb58a;
+    --accent-tint: #1a2e25;
+    --ring: #4fb58a;
 
-    --positive: #4ade80;
-    --positive-bg: #10261a;
-    --negative: #f97066;
-    --negative-bg: #2a1514;
-    --warning: #fdb022;
-    --warning-bg: #2a1f0a;
+    --negative: #f0776b;
+    --negative-bg: #2a1715;
+    --warning: #e0a43a;
+    --warning-text: #e0a43a;
+    --warning-bg: #2a2110;
 
-    --scrim: rgb(0 0 0 / 0.6);
+    --scrim: rgb(0 0 0 / 0.55);
     --shadow-popover: 0 4px 16px rgb(0 0 0 / 0.4);
     --shadow-overlay: 0 16px 48px rgb(0 0 0 / 0.5);
   }
@@ -168,6 +187,7 @@
 @media (max-width: 767px) {
   :root {
     --page-pad: var(--space-4);
+    --section-gap: var(--space-5);
   }
 }
 
@@ -187,9 +207,11 @@ body {
   margin: 0;
   min-height: 100dvh;
   font-family: var(--font-sans);
-  font-size: var(--text-md);
-  line-height: var(--leading-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
   font-weight: var(--weight-regular);
+  /* Every amount, date and count lines its digits up, wherever it appears. */
+  font-variant-numeric: tabular-nums;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -205,18 +227,26 @@ p {
   margin: 0;
 }
 
-h1 {
-  font-size: var(--text-xl);
-  line-height: var(--leading-xl);
+h1,
+h2,
+h3 {
   font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
 }
 
 h2 {
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+}
+
+h3 {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
 }
 
 button,
@@ -229,6 +259,7 @@ textarea {
 
 a {
   color: var(--accent-text);
+  text-underline-offset: 0.15em;
 }
 
 :focus-visible {
@@ -236,7 +267,13 @@ a {
   outline-offset: 2px;
 }
 
-/* Every amount and count lines its digits up. */
+/* One stroke weight for every lucide icon, a touch lighter than lucide's 2px so icons
+   sit with 400-weight text instead of shouting over it. */
+.lucide {
+  stroke-width: var(--icon-stroke);
+}
+
+/* Kept on figures for clarity; body already sets tabular figures. */
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -254,12 +291,12 @@ a {
   border: 0;
 }
 
-/* A page's content inside the app shell: one column, centred, never wider than
-   --content-max. */
+/* A page's content inside the app shell: one column, never wider than --content-max.
+   Sections are --section-gap apart; groups inside them sit closer. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--section-gap);
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
@@ -268,6 +305,45 @@ a {
   padding-right: max(var(--page-pad), env(safe-area-inset-right));
   padding-bottom: max(var(--page-pad), env(safe-area-inset-bottom));
   padding-left: max(var(--page-pad), env(safe-area-inset-left));
+}
+
+/* A titled block on a page: a heading row, then its content close underneath. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.section__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+
+.section__link {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* A budget's status in words ("On track", "Close to limit", "Over by $23.15"), in the
+   colour of its bar. The words carry the meaning; the colour only matches the bar. */
+.status-word {
+  font-weight: var(--weight-medium);
+}
+
+.status-word--default {
+  color: var(--accent-text);
+}
+
+.status-word--warning {
+  color: var(--warning-text);
+}
+
+.status-word--danger {
+  color: var(--negative);
 }
 
 /* Shown while a page's code loads, or while the session is checked. */

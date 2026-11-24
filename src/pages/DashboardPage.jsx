@@ -11,55 +11,47 @@ import SpendingTrendChart from '../dashboard/SpendingTrendChart'
 import './DashboardPage.css'
 
 /**
- * /dashboard (US-42): the key numbers for one month in one place. The month is in the
- * URL (?month=2026-11), like /summary and /budgets, and every panel shows that same
- * month: the summary cards, budget alerts (US-41) and spending charts (US-43, US-44).
+ * /dashboard (US-42): one month, answering "how much is left, and where did it go?".
+ * The month is in the URL (?month=2026-11), like /summary and /budgets, and every part
+ * shows that same month.
+ *
+ * It leads with one large figure: what's left of the month's income after expenses (the
+ * API's net balance, the same figure /summary shows). Under it, the budgets that need
+ * attention (US-41), then spending by category (US-43) and over the last 6 months (US-44).
  */
 export default function DashboardPage() {
   const { month, thisMonth, showMonth } = useMonthParam()
   const summary = useMonthlySummary(month)
+  const leadLabel = month === thisMonth ? 'Left this month' : `Left in ${formatMonth(month)}`
 
   return (
     <div className="page">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Your month at a glance."
-        actions={<MonthSelector month={month} current={thisMonth} onChange={showMonth} />}
-      />
+      <PageHeader title="Dashboard" actions={<MonthSelector month={month} current={thisMonth} onChange={showMonth} />} />
+
+      <section className="dashboard__lead" aria-label="Monthly summary">
+        <DashboardSummary summary={summary} month={month} leadLabel={leadLabel} />
+      </section>
 
       <div className="dashboard">
-        <section className="dashboard__summary" aria-label="Monthly summary">
-          <DashboardSummary summary={summary} month={month} />
-        </section>
-
-        <section className="dashboard__panel" aria-labelledby="dashboard-alerts">
-          <h2 id="dashboard-alerts" className="dashboard__heading">Budget alerts</h2>
-          <BudgetAlertsPanel month={month} />
-        </section>
-
-        <section className="dashboard__panel" aria-labelledby="dashboard-categories">
-          <h2 id="dashboard-categories" className="dashboard__heading">Spending by category</h2>
-          <CategorySpendingChart month={month} />
-        </section>
-
-        <section className="dashboard__panel dashboard__panel--wide" aria-labelledby="dashboard-trend">
-          <h2 id="dashboard-trend" className="dashboard__heading">Spending over the last 6 months</h2>
+        <BudgetAlertsPanel month={month} />
+        <CategorySpendingChart month={month} />
+        <div className="dashboard__wide">
           <SpendingTrendChart month={month} />
-        </section>
+        </div>
       </div>
     </div>
   )
 }
 
-// The same three cards as /summary (US-29), with their loading and error states.
-function DashboardSummary({ summary, month }) {
+// The month's figures (US-29) as the lead, with their loading and error states.
+function DashboardSummary({ summary, month, leadLabel }) {
   if (summary.status === 'loading') {
     return (
       <>
         <p className="visually-hidden" role="status">
           Loading summary…
         </p>
-        <SummaryCardsSkeleton />
+        <SummaryCardsSkeleton variant="lead" />
       </>
     )
   }
@@ -75,5 +67,5 @@ function DashboardSummary({ summary, month }) {
     )
   }
 
-  return <SummaryCards summary={summary.summary} isRefreshing={summary.isRefreshing} />
+  return <SummaryCards variant="lead" leadLabel={leadLabel} summary={summary.summary} isRefreshing={summary.isRefreshing} />
 }

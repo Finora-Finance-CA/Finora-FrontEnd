@@ -118,7 +118,7 @@ export async function dashboardFigures(page, category) {
   return {
     income: await figure('Total income'),
     expenses: await figure('Total expenses'),
-    net: await figure('Net balance'),
+    net: await figure('Left this month'),
     spent,
   }
 }
@@ -134,7 +134,7 @@ export async function addExpense(page, { amount, category, description }) {
   await drawer.getByRole('button', { name: 'Save expense' }).click()
 
   await expect(drawer).toBeHidden()
-  await expect(page.getByRole('status').filter({ hasText: `Expense of ${dollarsFrom(centsFrom(amount))} saved.` })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: `Expense of ${dollarsFrom(centsFrom(amount))} added.` })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Transaction history' }).getByRole('row', { name: new RegExp(description) })).toBeVisible()
 }
 
@@ -206,7 +206,7 @@ export async function expectDashboard(page, { before, amountCents, category, lim
   if (percent >= 80) {
     const alert = alerts.getByRole('listitem').filter({ hasText: category })
     await expect(alert.getByText(`${dollarsFrom(spent)} of ${dollarsFrom(limitCents)}`)).toBeVisible()
-    await expect(alert.getByText(spent > limitCents ? 'Over budget' : 'Close to limit')).toBeVisible()
+    await expect(alert.getByText(spent > limitCents ? `Over by ${dollarsFrom(spent - limitCents)}` : 'Close to limit')).toBeVisible()
     await expect(alert.getByRole('progressbar', { name: `${category} spending` })).toHaveAttribute('aria-valuenow', String(Math.min(percent, 100)))
   }
   return after

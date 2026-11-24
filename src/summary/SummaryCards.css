@@ -1,16 +1,29 @@
-/* One column on a phone, two on a tablet, three side by side on a desktop (US-56). */
+/* The Summary page: three figures in one panel, divided by rules. Side by side from a
+   tablet up; stacked rows on a phone (US-56). */
 .summary-cards {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
   margin: 0;
 
   @media (min-width: 640px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .summary-card {
+    padding: var(--space-5);
+
+    @media (max-width: 639px) {
+      padding: var(--space-4);
+    }
+  }
+
+  .summary-card + .summary-card {
+    border-top: 1px solid var(--border);
+
+    @media (min-width: 640px) {
+      border-top: none;
+      border-left: 1px solid var(--border);
+    }
   }
 }
 
@@ -23,7 +36,8 @@
 .summary-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  min-width: 0;
 
   dd {
     margin: 0;
@@ -31,28 +45,23 @@
 }
 
 .summary-card__label {
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
-  font-weight: var(--weight-medium);
   color: var(--text-muted);
 }
 
 .summary-card__amount {
-  font-size: var(--text-2xl);
-  line-height: var(--leading-2xl);
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
   font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
   overflow-wrap: anywhere;
 
   @media (max-width: 767px) {
-    font-size: var(--text-xl);
-    line-height: var(--leading-xl);
+    font-size: var(--text-lg);
+    line-height: var(--leading-lg);
   }
 }
 
 .summary-card__status {
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
+  margin-top: var(--space-1);
   color: var(--text-muted);
 
   strong {
@@ -61,13 +70,67 @@
 }
 
 .summary-card--income .summary-card__amount,
-.summary-card--surplus .summary-card__amount,
 .summary-card--surplus .summary-card__status strong {
   color: var(--positive);
 }
 
 /* A deficit is red, with a minus sign and the word Deficit as well. */
 .summary-card--deficit .summary-card__amount,
+.summary-card--deficit .summary-lead__amount,
 .summary-card--deficit .summary-card__status strong {
   color: var(--negative);
+}
+
+/* The dashboard: what's left this month as the one large figure, with income and
+   expenses smaller beside it on a wide screen and side by side under it on a phone. No
+   box: it's the page's lead, not one panel among many. */
+.summary-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    'lead lead'
+    'income expenses';
+  gap: var(--space-5) var(--space-6);
+  margin: 0;
+
+  @media (min-width: 768px) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'lead income expenses';
+    align-items: end;
+  }
+}
+
+.summary-card--lead {
+  grid-area: lead;
+  gap: var(--space-2);
+
+  .summary-card__status {
+    margin-top: 0;
+  }
+}
+
+.summary-lead__amount {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-2xl);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* Income and expenses: smaller, each after a thin rule. */
+.summary-card--part {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border);
+
+  .summary-card__amount {
+    font-size: var(--text-md);
+    line-height: var(--leading-md);
+  }
+}
+
+.summary-lead .summary-card--income {
+  grid-area: income;
+}
+
+.summary-lead .summary-card--part:not(.summary-card--income) {
+  grid-area: expenses;
 }

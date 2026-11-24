@@ -1,17 +1,14 @@
 .transaction-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
 
   th {
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-4) var(--space-2);
     font-size: var(--text-xs);
     line-height: var(--leading-xs);
     font-weight: var(--weight-medium);
     text-align: left;
     color: var(--text-muted);
-    background: var(--surface-2);
     border-bottom: 1px solid var(--border);
   }
 
@@ -19,10 +16,16 @@
     padding: var(--space-3) var(--space-4);
     vertical-align: middle;
     border-bottom: 1px solid var(--border);
+    transition: background-color var(--duration-base) var(--ease-out);
   }
 
   tbody tr:last-child td {
     border-bottom: none;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: var(--space-5);
   }
 }
 
@@ -36,8 +39,14 @@
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
+/* Just added or edited: tinted for a moment, then fades back (motion off: it just
+   goes). */
+.transaction-row--highlighted td {
+  background: var(--accent-tint);
+}
+
 .transaction-row__date {
-  width: 9rem;
+  width: 8.5rem;
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -47,12 +56,13 @@
 }
 
 .transaction-row__description {
-  font-weight: var(--weight-medium);
   overflow-wrap: anywhere;
 }
 
+/* Plain text: categories aren't colour coded. */
 .transaction-row__category {
-  width: 10rem;
+  width: 9.5rem;
+  color: var(--text-muted);
 }
 
 .transaction-row__amount {
@@ -62,30 +72,24 @@
 
 .transaction-row__figure {
   display: block;
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 
-.transaction-row__type {
-  display: block;
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
-  color: var(--text-muted);
-}
-
-/* Income: green, with a + and the word Income, so colour is never the only signal. */
+/* Income in the accent with a +; an expense in ink with a −. */
 .transaction-row--income .transaction-row__figure {
   color: var(--positive);
 }
 
 .transaction-table .transaction-row__actions {
   width: 1px;
-  padding-right: var(--space-2);
+  padding-right: var(--space-3);
   padding-left: 0;
 }
 
-/* Phones: each row is two lines, description and amount over date and category, with
-   the ⋯ menu on the right. The header stays for screen readers only. */
+/* Phones and small tablets: each transaction is two compact lines, the description and
+   amount over the date and category, with the ⋯ menu beside both. The header stays
+   for screen readers only. */
 @media (max-width: 767px) {
   .transaction-table thead {
     position: absolute;
@@ -105,19 +109,29 @@
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       'details details amount actions'
-      'date category amount actions';
-    align-items: center;
+      'date category category actions';
+    align-items: baseline;
     column-gap: var(--space-3);
-    row-gap: var(--space-1);
-    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+    row-gap: 2px;
+    padding: var(--space-3) var(--space-1) var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--border);
+    transition: background-color var(--duration-base) var(--ease-out);
 
     &:last-child {
       border-bottom: none;
     }
   }
 
-  .transaction-table td {
+  .transaction-row--highlighted {
+    background: var(--accent-tint);
+
+    td {
+      background: none;
+    }
+  }
+
+  .transaction-table td,
+  .transaction-table td:first-child {
     display: block;
     width: auto;
     padding: 0;
@@ -128,10 +142,14 @@
     grid-area: details;
   }
 
-  .transaction-row__date {
-    grid-area: date;
+  .transaction-row__date,
+  .transaction-row__category {
     font-size: var(--text-xs);
     line-height: var(--leading-xs);
+  }
+
+  .transaction-row__date {
+    grid-area: date;
   }
 
   .transaction-row__category {
@@ -144,38 +162,8 @@
 
   .transaction-table .transaction-row__actions {
     grid-area: actions;
+    align-self: center;
     width: auto;
     padding: 0;
-  }
-}
-
-/* Narrow phones (US-55): each transaction is a small card, so nothing has to share a
-   line with the amount. Description and the ⋯ menu on top, then the category with the
-   amount, then the date with Income or Expense. */
-@media (max-width: 639px) {
-  .transaction-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'details actions'
-      'category amount'
-      'date amount';
-    align-items: start;
-    row-gap: var(--space-1);
-    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
-  }
-
-  .transaction-table .transaction-row__actions {
-    justify-self: end;
-    margin-top: calc(var(--space-2) * -1);
-  }
-
-  .transaction-row__category {
-    align-self: center;
-    min-width: 0;
-  }
-
-  .transaction-row__amount {
-    align-self: end;
-    padding-right: var(--space-2);
   }
 }

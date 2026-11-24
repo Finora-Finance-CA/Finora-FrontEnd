@@ -17,7 +17,11 @@
   color: var(--text-muted);
 }
 
-.field__hint,
+.field__hint {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
 .field__error {
   font-size: var(--text-sm);
   line-height: var(--leading-sm);

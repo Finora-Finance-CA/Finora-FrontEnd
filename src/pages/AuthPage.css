@@ -1,15 +1,16 @@
+/* The form sits on the page itself, left-aligned in a narrow column, with no card. */
 .auth-page {
   display: flex;
   align-items: center;
-  justify-content: center;
   min-height: 100dvh;
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-8) clamp(var(--space-4), 12vw, 160px);
+  padding-left: max(clamp(var(--space-4), 12vw, 160px), env(safe-area-inset-left));
 }
 
 .auth-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
   width: 100%;
   max-width: var(--auth-w);
 }
@@ -17,13 +18,11 @@
 .auth-card__intro {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
-.auth-card__subtitle,
-.auth-card__switch {
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
+.auth-card__subtitle {
+  max-width: 36ch;
   color: var(--text-muted);
 }
 
@@ -34,7 +33,7 @@
 }
 
 .auth-card__switch {
-  text-align: center;
+  color: var(--text-muted);
 
   a {
     font-weight: var(--weight-medium);

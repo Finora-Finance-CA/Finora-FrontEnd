@@ -38,7 +38,7 @@ export default function BudgetsPage() {
   }
 
   // Saving notifies every page (useTransactionForm), so the figures load again by
-  // themselves; the row keeps its place while they do. "Expense of $12.50 saved." shows
+  // themselves; the row keeps its place while they do. "Expense of $12.50 added." shows
   // as a toast.
   function handleExpenseSaved(_transaction, text) {
     setAddingTo(null)
@@ -49,7 +49,6 @@ export default function BudgetsPage() {
     <div className="page">
       <PageHeader
         title="Budgets"
-        subtitle="Set a monthly spending limit for each category, and see how much of it you've spent."
         actions={<MonthSelector month={month} current={thisMonth} onChange={showMonth} />}
       />
       <BudgetsContent
@@ -82,8 +81,11 @@ function BudgetsContent({ budgets, spending, month, onAddExpense }) {
             {BUDGET_CATEGORIES.map((category) => (
               <li key={category} className="budget-row">
                 <div className="budget-row__summary">
-                  <Skeleton shape="pill" />
                   <Skeleton shape="short" />
+                  <Skeleton shape="text" />
+                </div>
+                <div className="budget-row__progress">
+                  <Skeleton shape="bar" />
                 </div>
               </li>
             ))}

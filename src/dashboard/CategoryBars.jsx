@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatCents } from '../transactions/money'
 import { compactDollars } from './chartFormat'
 import { CHART_TOOLTIP_STYLE } from './chartStyle'
@@ -8,29 +8,33 @@ import { CHART_TOOLTIP_STYLE } from './chartStyle'
  * chunk, loaded only when the dashboard opens (US-62), so no other page downloads the
  * chart library. CategorySpendingChart owns the data, the states and the table.
  *
+ * One colour, and each bar labelled with its amount, so there's no value axis, grid or
+ * legend to read across.
+ *
  * @param {object} props
  * @param {{ category: string, spent_cents: number }[]} props.categories
- * @param {boolean} props.compact Short figures and narrower margins for a phone (US-56).
+ * @param {boolean} props.compact Narrower margins for a phone (US-56).
+ * @param {boolean} [props.shortLabels] Short figures ("$1.8K") where even exact ones won't fit.
  */
-export default function CategoryBars({ categories, compact }) {
+export default function CategoryBars({ categories, compact, shortLabels = compact }) {
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={220}>
       <BarChart
         data={categories}
         layout="vertical"
-        margin={{ top: 4, right: compact ? 48 : 72, bottom: 4, left: 0 }}
+        margin={{ top: 4, right: shortLabels ? 56 : 84, bottom: 4, left: 0 }}
+        barCategoryGap="28%"
         accessibilityLayer={false}
       >
-        <CartesianGrid horizontal={false} />
-        <XAxis type="number" tickFormatter={compactDollars} tickLine={false} axisLine={false} tickCount={compact ? 3 : 5} />
-        <YAxis type="category" dataKey="category" width={compact ? 96 : 110} tickLine={false} axisLine={false} />
+        <XAxis type="number" hide />
+        <YAxis type="category" dataKey="category" width={compact ? 112 : 128} tickLine={false} axisLine={false} />
         <Tooltip
           cursor={{ className: 'category-chart__cursor' }}
           formatter={(cents) => [formatCents(cents), 'Spent']}
           {...CHART_TOOLTIP_STYLE}
         />
-        <Bar dataKey="spent_cents" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-          <LabelList dataKey="spent_cents" position="right" formatter={compact ? compactDollars : formatCents} />
+        <Bar dataKey="spent_cents" radius={[0, 2, 2, 0]} isAnimationActive={false}>
+          <LabelList dataKey="spent_cents" position="right" formatter={shortLabels ? compactDollars : formatCents} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>

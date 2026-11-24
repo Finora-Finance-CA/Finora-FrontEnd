@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { createBudget, updateBudget } from '../api/budgets'
 import ErrorAlert from '../components/ErrorAlert'
@@ -174,7 +173,7 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
         <div className="budget-row__actions">
           {budget ? (
             <>
-              <Button ref={primaryRef} size="sm" onClick={openForm} aria-label={`Edit ${category} limit`}>
+              <Button ref={primaryRef} variant="ghost" size="sm" onClick={openForm} aria-label={`Edit ${category} limit`}>
                 Edit
               </Button>
               <Button
@@ -190,8 +189,8 @@ export default function BudgetRow({ category, budget, spending, onSaved, onRemov
                   button into Set limit, which is where focus goes back to. */}
               {onAddExpense && (
                 <Button
+                  variant="ghost"
                   size="sm"
-                  icon={Plus}
                   aria-haspopup="dialog"
                   onClick={(event) => onAddExpense(category, event.currentTarget)}
                   aria-label={`Add expense to ${category}`}
@@ -279,23 +278,31 @@ function LimitForm({ category, fieldId, startValue, formError, isSaving, onSubmi
   )
 }
 
-// The bar and the figures under it. The text says everything the bar shows, so its
-// length and colour are never the only signal. The status (US-39, US-40) colours the
-// bar and adds a label.
+// The bar and the line under it: a status word ("On track", "Close to limit", "Over
+// by $23.15"), then the percent used and what's left. The words say everything the bar
+// shows, so its length and colour are never the only signal (US-39, US-40). Over the
+// limit, the status word already says by how much, so it isn't said twice.
 function BudgetProgress({ category, spending }) {
   const { percent_used: percent, remaining_cents: remaining, status } = spending
   const left = remainingText(remaining)
-  const alert = budgetAlert(status)
+  const alert = budgetAlert(status, remaining)
+  const over = remaining < 0
 
   return (
     <div className="budget-row__progress">
       <ProgressBar value={percent} label={`${category} spending`} valueText={`${percent}% used, ${left}`} tone={alert.tone} />
-      <p className="budget-row__figures tabular">
-        <span>{percent}% used</span>
+      <p className="budget-row__figures">
         {alert.label && (
-          <span className={`budget-row__alert budget-row__alert--${alert.tone}`}>{alert.label}</span>
+          <span className={`status-word status-word--${alert.tone}${over ? ' budget-row__remaining' : ''}`}>{alert.label}</span>
         )}
-        <span className="budget-row__remaining">{left}</span>
+        <span className="budget-row__usage">
+          {percent}% used
+          {!over && (
+            <>
+              , <span className="budget-row__remaining">{left}</span>
+            </>
+          )}
+        </span>
       </p>
     </div>
   )

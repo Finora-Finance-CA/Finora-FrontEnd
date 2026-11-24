@@ -4,25 +4,28 @@
   gap: var(--space-2);
 }
 
-/* Arrow-only on a phone, so each button keeps a full 44px to tap. */
 .pagination .button {
   min-width: var(--control-h);
 }
 
 .pagination__status {
   padding: 0 var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* The arrow points the way the button goes: after the word on Next. */
-.pagination__next {
-  flex-direction: row-reverse;
+/* Words only where there's room: no arrows tacked onto the text. */
+.pagination .button__icon {
+  display: none;
 }
 
-/* On a narrow phone the arrows stand alone; the buttons keep their names. */
+/* On a narrow phone the arrows stand in for the words; the buttons keep their names. */
 @media (max-width: 420px) {
+  .pagination .button__icon {
+    display: block;
+  }
+
   .pagination__word {
     position: absolute;
     width: 1px;

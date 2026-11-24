@@ -39,7 +39,7 @@
 .icon-button--secondary {
   color: var(--text);
   background: var(--surface);
-  border-color: var(--border-field);
+  border-color: var(--border);
 }
 
 .icon-button__icon {

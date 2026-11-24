@@ -1,4 +1,3 @@
-import { CalendarX } from 'lucide-react'
 import { Link } from 'react-router'
 import ErrorState from '../components/ErrorState'
 import Card from '../components/ui/Card'
@@ -25,7 +24,6 @@ export default function SummaryPage() {
     <div className="page">
       <PageHeader
         title="Monthly summary"
-        subtitle="What came in, what went out and what's left."
         actions={<MonthSelector month={month} current={thisMonth} onChange={showMonth} />}
       />
       <SummaryContent summary={summary} month={month} />
@@ -61,9 +59,8 @@ function SummaryContent({ summary, month }) {
     <>
       <SummaryCards summary={summary.summary} isRefreshing={summary.isRefreshing} />
       {count === 0 && !summary.isRefreshing ? (
-        <Card>
+        <Card padded={false}>
           <EmptyState
-            icon={CalendarX}
             title={`No transactions in ${formatMonth(summary.summary.month)}.`}
             action={
               <Link to="/transactions" className="button button--secondary">

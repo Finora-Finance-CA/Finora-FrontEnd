@@ -11,7 +11,7 @@
   min-width: var(--badge-size);
   height: var(--badge-size);
   padding: 0 var(--space-1);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xs);
   font-size: var(--text-xs);
   color: var(--accent-text);
   background: var(--accent-tint);

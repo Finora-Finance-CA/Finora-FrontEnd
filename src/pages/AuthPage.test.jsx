@@ -47,6 +47,17 @@ describe('login page', () => {
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 
+  it.each([
+    ['/login', 'Log in'],
+    ['/register', 'Create your account'],
+  ])('says what the app does in one line on %s, on the page rather than in a card', async (path, heading) => {
+    await showPage(path)
+
+    const title = screen.getByRole('heading', { name: heading, level: 1 })
+    expect(screen.getByText("Set a monthly limit for each category, log what you spend, and see what's left.")).toBeInTheDocument()
+    expect(title.closest('.card')).toBeNull()
+  })
+
   it('asks for both fields under each one, focuses the first and calls nothing', async () => {
     await showPage()
 

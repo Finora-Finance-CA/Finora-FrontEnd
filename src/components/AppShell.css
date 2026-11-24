@@ -36,11 +36,11 @@
   height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) max(var(--space-2), env(safe-area-inset-right)) 0
     max(var(--space-4), env(safe-area-inset-left));
-  background: var(--surface);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 
-/* "Waking up the server…", lined up with the page under it. Takes no space while empty. */
+/* "Starting the server…", lined up with the page under it. Takes no space while empty. */
 .slow-server-notice:not(:empty) {
   width: 100%;
   max-width: var(--content-max);
@@ -75,8 +75,8 @@
     flex-direction: column;
     gap: var(--space-6);
     height: 100dvh;
-    padding: var(--space-5) var(--space-3);
-    background: var(--surface);
+    padding: var(--space-6) var(--space-3) var(--space-5);
+    background: var(--bg);
     border-right: 1px solid var(--border);
     overflow-y: auto;
   }
@@ -119,11 +119,16 @@
     background: var(--surface-2);
   }
 
-  /* The current page: tinted, accent text and bolder, not colour alone. */
+  /* The current page: ink, bolder and a raised neutral fill, with the icon in the
+     accent. Weight and fill say it without relying on colour. */
   &[aria-current='page'] {
-    color: var(--accent-text);
-    background: var(--accent-tint);
+    color: var(--text);
+    background: var(--surface-3);
     font-weight: var(--weight-semibold);
+
+    .main-nav__icon {
+      color: var(--accent);
+    }
   }
 }
 

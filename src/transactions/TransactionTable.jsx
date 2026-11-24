@@ -14,10 +14,19 @@ const SKELETON_ROWS = 5
  * @param {object[]} [props.transactions]
  * @param {boolean} [props.loading]
  * @param {boolean} [props.isRefreshing] A newer page is loading; the rows are dimmed.
+ * @param {string|number|null} [props.highlightedId] A row just added or edited, highlighted for a moment.
  * @param {(transaction: object, opener: HTMLButtonElement) => void} [props.onEdit]
  * @param {(transaction: object, opener: HTMLButtonElement) => void} [props.onDelete]
  */
-export default function TransactionTable({ labelledBy, transactions = [], loading = false, isRefreshing = false, onEdit, onDelete }) {
+export default function TransactionTable({
+  labelledBy,
+  transactions = [],
+  loading = false,
+  isRefreshing = false,
+  highlightedId = null,
+  onEdit,
+  onDelete,
+}) {
   return (
     <table
       className={`transaction-table${isRefreshing ? ' transaction-table--refreshing' : ''}`}
@@ -48,7 +57,13 @@ export default function TransactionTable({ labelledBy, transactions = [], loadin
         {loading
           ? Array.from({ length: SKELETON_ROWS }, (_, index) => <SkeletonRow key={index} />)
           : transactions.map((transaction) => (
-              <TransactionRow key={transaction.id} transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
+              <TransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                highlighted={highlightedId != null && transaction.id === highlightedId}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
       </tbody>
     </table>
@@ -65,7 +80,7 @@ function SkeletonRow() {
         <Skeleton />
       </td>
       <td className="transaction-row__category" role="cell">
-        <Skeleton shape="pill" />
+        <Skeleton shape="short" />
       </td>
       <td className="transaction-row__amount" role="cell">
         <Skeleton shape="amount" />

@@ -5,7 +5,6 @@ import { authErrorMessage } from '../auth/authErrors';
 import Logo from '../components/Logo';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 import Field from '../components/ui/Field';
 import IconButton from '../components/ui/IconButton';
 import Input from '../components/ui/Input';
@@ -17,10 +16,12 @@ import './AuthPage.css';
 
 const FIELDS = ['email', 'password'];
 
+// What Finora is for, in one line, on both forms.
+const PITCH = "Set a monthly limit for each category, log what you spend, and see what's left.";
+
 const COPY = {
     login: {
         heading: 'Log in',
-        subtitle: 'Welcome back. Pick up where you left off.',
         submit: 'Log in',
         busy: 'Logging in…',
         switchText: "Don't have an account?",
@@ -30,7 +31,6 @@ const COPY = {
     },
     register: {
         heading: 'Create your account',
-        subtitle: 'Track your spending and set monthly budgets.',
         submit: 'Create account',
         busy: 'Creating account…',
         switchText: 'Already have an account?',
@@ -50,7 +50,8 @@ function validatorFor(isRegister) {
 }
 
 /**
- * /login and /register: a centred card with no app chrome. Problems with a field show
+ * /login and /register: a plain, left-aligned form on the page with the wordmark and
+ * one line about what the app does, and no app chrome. Problems with a field show
  * under it; problems with the sign-in itself show above the button. Supabase's own
  * error text is never shown (see authErrors.js).
  *
@@ -121,11 +122,11 @@ function AuthPage({ mode }) {
 
     return (
         <main className="auth-page">
-            <Card className="auth-card">
+            <div className="auth-card">
                 <Logo />
                 <div className="auth-card__intro">
                     <h1>{copy.heading}</h1>
-                    <p className="auth-card__subtitle">{copy.subtitle}</p>
+                    <p className="auth-card__subtitle">{PITCH}</p>
                 </div>
 
                 {signedOutReason && !isRegister && (
@@ -182,7 +183,7 @@ function AuthPage({ mode }) {
                 <p className="auth-card__switch">
                     {copy.switchText} <Link to={copy.switchTo}>{copy.switchLink}</Link>
                 </p>
-            </Card>
+            </div>
         </main>
     );
 }

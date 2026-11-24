@@ -34,13 +34,6 @@
   animation: toast-in var(--duration-base) var(--ease-out);
 }
 
-.toast__icon {
-  flex: none;
-  width: var(--icon-md);
-  height: var(--icon-md);
-  color: var(--positive);
-}
-
 .toast__message {
   flex: 1;
   min-width: 0;

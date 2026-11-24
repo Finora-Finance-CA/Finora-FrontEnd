@@ -109,14 +109,14 @@ describe('budget alerts (US-39, US-40)', () => {
 
     expect(barFor('Housing')).toHaveClass('progress-bar--warning')
     expect(rowFor('Housing')).toHaveTextContent('Close to limit')
-    expect(rowFor('Housing')).not.toHaveTextContent('Over budget')
+    expect(rowFor('Housing')).not.toHaveTextContent('Over by')
   })
 
   it('colours a budget above its limit as over, with a label', async () => {
     await showBudgets()
 
     expect(barFor('Transportation')).toHaveClass('progress-bar--danger')
-    expect(rowFor('Transportation')).toHaveTextContent('Over budget')
+    expect(rowFor('Transportation')).toHaveTextContent('Over by $23.15')
     expect(rowFor('Transportation')).not.toHaveTextContent('Close to limit')
   })
 
@@ -129,8 +129,9 @@ describe('budget alerts (US-39, US-40)', () => {
     await showBudgets()
 
     expect(barFor('Food')).toHaveClass('progress-bar--default')
+    expect(rowFor('Food')).toHaveTextContent('On track')
     expect(rowFor('Food')).not.toHaveTextContent('Close to limit')
-    expect(rowFor('Food')).not.toHaveTextContent('Over budget')
+    expect(rowFor('Food')).not.toHaveTextContent('Over by')
   })
 
   it('updates the alert when an expense takes a budget over its limit', async () => {
@@ -148,7 +149,7 @@ describe('budget alerts (US-39, US-40)', () => {
     fireEvent.click(within(drawer).getByRole('button', { name: 'Save expense' }))
 
     await waitFor(() => expect(barFor('Food')).toHaveClass('progress-bar--danger'))
-    expect(rowFor('Food')).toHaveTextContent('Over budget')
+    expect(rowFor('Food')).toHaveTextContent('Over by $4.87')
     // Over by one cent or more still reads 100% used; only the status tells it apart.
     expect(rowFor('Food')).toHaveTextContent('100% used')
   })
@@ -217,7 +218,7 @@ describe('keeping the figures current (US-38)', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({ type: 'expense', category: 'Food', amount_cents: 1250 }))
-    expect(screen.getByText('Expense of $12.50 saved.')).toBeInTheDocument()
+    expect(screen.getByText('Expense of $12.50 added.')).toBeInTheDocument()
     await waitFor(() => expect(rowFor('Food')).toHaveTextContent('$417.37 of $500.00'))
     await waitFor(() => expect(getBudgetStatus).toHaveBeenCalledTimes(2))
     expect(rowFor('Food').querySelector('.budget-row__remaining')).toHaveTextContent('$82.63 left')

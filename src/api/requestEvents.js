@@ -8,7 +8,7 @@
 
 // The point at which a wait stops feeling normal and needs explaining.
 export const SLOW_REQUEST_MS = 5000
-export const WAKING_UP_MESSAGE = 'Waking up the server, this can take up to a minute.'
+export const WAKING_UP_MESSAGE = 'Starting the server, this can take up to a minute.'
 
 const sessionExpiredListeners = new Set()
 const slowListeners = new Set()

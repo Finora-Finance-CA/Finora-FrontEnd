@@ -1,4 +1,4 @@
-import { CircleCheck, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import IconButton from './IconButton'
@@ -83,7 +83,6 @@ export function ToastProvider({ children }) {
         >
           {toasts.map(({ id, message }) => (
             <div key={id} className="toast">
-              <CircleCheck className="toast__icon" aria-hidden="true" />
               <p className="toast__message">{message}</p>
               <IconButton icon={X} label="Dismiss" className="toast__dismiss" onClick={() => dismiss(id)} />
             </div>

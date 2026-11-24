@@ -160,7 +160,7 @@ describe('the transaction form blocks invalid input (US-52)', () => {
 
     save(drawer)
 
-    expect(await findToast('Expense of $12.50 saved.')).toBeInTheDocument()
+    expect(await findToast('Expense of $12.50 added.')).toBeInTheDocument()
   })
 
   it('limits the date picker to the range the API accepts', async () => {

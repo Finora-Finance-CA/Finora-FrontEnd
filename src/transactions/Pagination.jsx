@@ -31,7 +31,6 @@ export default function Pagination({ page, totalPages, onPageChange, disabled = 
       </p>
       <Button
         size="sm"
-        className="pagination__next"
         icon={ChevronRight}
         onClick={() => onPageChange(page + 1)}
         disabled={disabled || page >= totalPages}

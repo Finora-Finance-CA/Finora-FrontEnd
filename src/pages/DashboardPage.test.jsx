@@ -118,13 +118,33 @@ describe('dashboard page (US-42)', () => {
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('shows the same summary cards as /summary for the month', async () => {
+  it('leads with what is left this month (the net balance), with income and expenses beside it', async () => {
     await showDashboard()
 
     expect(getMonthlySummary).toHaveBeenCalledWith('2026-10')
+    const lead = card('Left this month')
+    expect(lead).toHaveClass('summary-card--lead')
+    expect(within(lead).getByText('$451.14')).toBeInTheDocument()
+    expect(lead).toHaveTextContent('Income minus expenses.')
     expect(within(card('Total income')).getByText('$2,450.00')).toBeInTheDocument()
     expect(within(card('Total expenses')).getByText('$1,998.86')).toBeInTheDocument()
-    expect(within(card('Net balance')).getByText('$451.14')).toBeInTheDocument()
+  })
+
+  it('names the month when it is not the current one', async () => {
+    getMonthlySummary.mockImplementation(async (month) => summaryFor(month, { income: 300000, expenses: 125099, count: 3 }))
+    await showDashboard('/dashboard?month=2026-08')
+
+    expect(within(card('Left in August 2026')).getByText('$1,749.01')).toBeInTheDocument()
+  })
+
+  it('shows a deficit in red with a minus sign, and says by how much', async () => {
+    getMonthlySummary.mockResolvedValue(summaryFor('2026-10', { income: 68540, expenses: 104238, count: 4 }))
+    await showDashboard()
+
+    const lead = card('Left this month')
+    expect(within(lead).getByText('-$356.98')).toBeInTheDocument()
+    expect(lead).toHaveClass('summary-card--deficit')
+    expect(lead).toHaveTextContent('You spent $356.98 more than came in.')
   })
 
   it('changes every panel to the chosen month and keeps it in the URL', async () => {
@@ -152,7 +172,7 @@ describe('budget alerts panel (US-41)', () => {
     const items = await within(alertsPanel()).findAllByRole('listitem')
     expect(items).toHaveLength(3)
     expect(items[0]).toHaveTextContent('Transportation')
-    expect(items[0]).toHaveTextContent('Over budget')
+    expect(items[0]).toHaveTextContent('Over by $23.15')
     expect(items[1]).toHaveTextContent('Housing')
     expect(items[1]).toHaveTextContent('Close to limit')
     expect(items[2]).toHaveTextContent('Food')
@@ -190,7 +210,7 @@ describe('budget alerts panel (US-41)', () => {
 
     const items = await within(alertsPanel()).findAllByRole('listitem')
     expect(items[0]).toHaveTextContent('Other')
-    expect(items[0]).toHaveTextContent('Over budget')
+    expect(items[0]).toHaveTextContent('Over by $0.01')
     expect(items[1]).toHaveTextContent('Food')
   })
 

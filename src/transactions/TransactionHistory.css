@@ -1,18 +1,23 @@
 .transaction-history {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
 }
 
+/* The panel's own title, inside its top edge like every other panel. */
 .transaction-history__header {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border);
+  padding: var(--space-4) var(--space-5) var(--space-1);
+
+  @media (max-width: 767px) {
+    padding: var(--space-4) var(--space-4) var(--space-2);
+    border-bottom: 1px solid var(--border);
+  }
 }
 
 .transaction-history__title {
-  font-size: var(--text-md);
-  line-height: var(--leading-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
 }
 
 .transaction-history__footer {
@@ -21,12 +26,16 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2) var(--space-4);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
   border-top: 1px solid var(--border);
+
+  @media (max-width: 767px) {
+    padding-left: var(--space-4);
+  }
 }
 
 .transaction-history__summary {
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
   color: var(--text-muted);
 }

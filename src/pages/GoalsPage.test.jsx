@@ -160,7 +160,7 @@ describe('creating a goal', () => {
     fill(dialog, { name: '  New laptop  ', target: '1,299.99', date: '2027-01-15' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add goal' }))
 
-    expect(await findToast('Goal created.')).toBeInTheDocument()
+    expect(await findToast('Goal added.')).toBeInTheDocument()
     expect(createGoal).toHaveBeenCalledWith({ name: 'New laptop', target_cents: 129999, target_date: '2027-01-15' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(within(goalList()).getAllByRole('heading')[0]).toHaveTextContent('New laptop')

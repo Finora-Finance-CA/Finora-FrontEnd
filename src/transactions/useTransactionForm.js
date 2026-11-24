@@ -39,7 +39,7 @@ function valuesFrom(transaction) {
  *   When adding, values to start with instead of the empty ones, e.g. { category: 'Food' }.
  *   Ignored when editing.
  * @param {(transaction: object, message?: string) => void} [options.onSaved] Called after a
- *   successful save. After adding, it also gets a message to show, e.g. "Expense of $12.50 saved.".
+ *   successful save. After adding, it also gets a message to show, e.g. "Expense of $12.50 added.".
  * @param {() => void} [options.onNotFound] Called, instead of showing an error, when
  *   the transaction being edited no longer exists.
  * @param {(isSubmitting: boolean) => void} [options.onSubmittingChange] Called when a
@@ -117,7 +117,7 @@ export function useTransactionForm({
     // On failure the form stays open with everything the user typed.
     if (failure) handleApiError(failure)
     else if (transaction) onSaved?.(saved)
-    else onSaved?.(saved, `${label} of ${formatCents(payload.amount_cents)} saved.`)
+    else onSaved?.(saved, `${label} of ${formatCents(payload.amount_cents)} added.`)
   }
 
   function handleApiError(err) {

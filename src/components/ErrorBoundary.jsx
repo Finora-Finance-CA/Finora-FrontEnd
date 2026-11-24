@@ -1,4 +1,3 @@
-import { CircleAlert, WifiOff } from 'lucide-react'
 import { Component } from 'react'
 import { useLocation } from 'react-router'
 import { resetFailedPages } from '../lib/lazyPage'
@@ -85,9 +84,8 @@ function ErrorFallback({ error, variant, onRetry }) {
       : 'This part of the app ran into a problem. Try again, or reload the page.'
 
   const content = (
-    <Card>
+    <Card padded={false}>
       <EmptyState
-        icon={offline ? WifiOff : CircleAlert}
         title={title}
         action={
           <div className="error-boundary__actions">

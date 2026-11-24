@@ -7,6 +7,7 @@ import { useToast } from '../components/ui/useToast'
 import AddTransactionDrawer from '../transactions/AddTransactionDrawer'
 import { hasActiveFilters, isRangeReversed, readListQuery, writeListQuery } from '../transactions/listQuery'
 import TransactionHistory from '../transactions/TransactionHistory'
+import { useRowHighlight } from '../transactions/useRowHighlight'
 import { useTransactions } from '../transactions/useTransactions'
 import './TransactionsPage.css'
 
@@ -14,6 +15,8 @@ export default function TransactionsPage() {
   const [adding, setAdding] = useState(false)
   const { showToast } = useToast()
   const addButtonRef = useRef(null)
+  // The row just added or edited is highlighted for a moment, so it's easy to find.
+  const [highlightedId, highlight] = useRowHighlight()
 
   // The list's page, search and filters live in the URL, so refresh and Back keep them.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -49,11 +52,12 @@ export default function TransactionsPage() {
   }
 
   // The drawer closes and focus goes back to Add transaction; the list loads again so
-  // the new transaction shows where the API puts it. "Expense of $12.50 saved." shows
-  // as a toast.
-  function handleAdded(_transaction, text) {
+  // the new transaction shows where the API puts it, highlighted for a moment. "Expense
+  // of $12.50 added." shows as a toast.
+  function handleAdded(transaction, text) {
     setAdding(false)
     showToast(text)
+    if (transaction?.id != null) highlight(transaction.id)
     list.reload()
   }
 
@@ -61,7 +65,6 @@ export default function TransactionsPage() {
     <div className="page">
       <PageHeader
         title="Transactions"
-        subtitle="Every income and expense, newest first."
         actions={
           <Button ref={addButtonRef} variant="primary" icon={Plus} aria-haspopup="dialog" onClick={openAdd}>
             <span>
@@ -77,6 +80,8 @@ export default function TransactionsPage() {
         rangeReversed={rangeReversed}
         onQueryChange={updateQuery}
         onAddFirst={openAdd}
+        highlightedId={highlightedId}
+        onHighlight={highlight}
       />
       {adding && <AddTransactionDrawer onSaved={handleAdded} onClose={() => setAdding(false)} returnFocusRef={addButtonRef} />}
     </div>

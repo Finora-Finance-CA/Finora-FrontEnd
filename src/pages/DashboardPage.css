@@ -1,30 +1,25 @@
-/* Summary cards across the top; alerts and the category chart side by side on wide
-   screens; the 6-month trend full width underneath. One column on narrow screens. */
+/* The lead figure on its own, then budget alerts and spending by category side by side
+   on wide screens, and the 6-month trend full width underneath. One column on narrow
+   screens. */
+.dashboard__lead {
+  padding-bottom: var(--section-gap);
+  border-bottom: 1px solid var(--border);
+}
+
 .dashboard {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
 }
 
-.dashboard__summary,
-.dashboard__panel--wide {
+.dashboard__wide {
   grid-column: 1 / -1;
-}
-
-.dashboard__panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0; /* lets charts shrink inside the grid instead of overflowing */
-}
-
-.dashboard__heading {
-  font-size: var(--text-md, 1rem);
-  font-weight: var(--weight-medium);
+  min-width: 0;
 }
 
 @media (min-width: 900px) {
   .dashboard {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }

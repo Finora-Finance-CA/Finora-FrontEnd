@@ -1,4 +1,3 @@
-import { CalendarX, CircleAlert, Inbox, Plus, SearchX } from 'lucide-react'
 import { useId, useRef, useState } from 'react'
 import ErrorAlert from '../components/ErrorAlert'
 import Button from '../components/ui/Button'
@@ -32,6 +31,8 @@ const MESSAGES = {
  * @param {boolean} props.rangeReversed
  * @param {(changes: object, options?: { replace?: boolean }) => void} props.onQueryChange
  * @param {() => void} props.onAddFirst Opens the add drawer.
+ * @param {string|number|null} [props.highlightedId] The row to highlight for a moment.
+ * @param {(id: string|number) => void} [props.onHighlight] Highlights a row, e.g. after an edit.
  *
  * What just happened ("Transaction deleted.") shows as a toast.
  */
@@ -42,6 +43,8 @@ export default function TransactionHistory({
   rangeReversed,
   onQueryChange,
   onAddFirst,
+  highlightedId = null,
+  onHighlight,
 }) {
   const { showToast } = useToast()
   const [editing, setEditing] = useState(null)
@@ -64,6 +67,7 @@ export default function TransactionHistory({
     list.showSaved(transaction)
     setEditing(null)
     showToast(MESSAGES.updated)
+    onHighlight?.(transaction.id)
   }
 
   function handleDeleted(transaction) {
@@ -117,6 +121,7 @@ export default function TransactionHistory({
           onClearFilters={clearFilters}
           onAddFirst={onAddFirst}
           onPageChange={goToPage}
+          highlightedId={highlightedId}
           onEdit={(transaction, opener) => openDialog(setEditing, transaction, opener)}
           onDelete={(transaction, opener) => openDialog(setDeleting, transaction, opener)}
         />
@@ -158,12 +163,22 @@ function Loading({ headingId }) {
   )
 }
 
-function ListContent({ list, headingId, filtersActive, onClearFilters, onAddFirst, onPageChange, onEdit, onDelete }) {
+function ListContent({
+  list,
+  headingId,
+  filtersActive,
+  onClearFilters,
+  onAddFirst,
+  onPageChange,
+  highlightedId,
+  onEdit,
+  onDelete,
+}) {
   const { status, isRefreshing, transactions, pagination } = list
 
   if (status === 'idle') {
     return (
-      <EmptyState icon={CalendarX} title="Check the date range">
+      <EmptyState title="Check the date range">
         The To date is before the From date. Change one of them to see your transactions.
       </EmptyState>
     )
@@ -174,7 +189,6 @@ function ListContent({ list, headingId, filtersActive, onClearFilters, onAddFirs
   if (status === 'error') {
     return (
       <EmptyState
-        icon={CircleAlert}
         title="Transactions didn't load"
         action={
           list.error?.kind !== 'unauthorized' && (
@@ -194,24 +208,20 @@ function ListContent({ list, headingId, filtersActive, onClearFilters, onAddFirs
     if (filtersActive) {
       return (
         <EmptyState
-          icon={SearchX}
           title="No transactions match your search and filters."
           action={<Button onClick={onClearFilters}>Clear all filters</Button>}
         >
-          Try a different search, or clear the filters to see everything.
+          Try a different search or date range, or clear the filters to see everything.
         </EmptyState>
       )
     }
 
     return (
       <EmptyState
-        icon={Inbox}
         title="You haven't added any transactions yet."
         action={
           // Secondary, so the page's Add transaction button stays its one primary action.
-          <Button icon={Plus} onClick={onAddFirst}>
-            Add your first transaction
-          </Button>
+          <Button onClick={onAddFirst}>Add your first transaction</Button>
         }
       >
         Add an expense or an income and it will show up here.
@@ -229,6 +239,7 @@ function ListContent({ list, headingId, filtersActive, onClearFilters, onAddFirs
         labelledBy={headingId}
         transactions={transactions}
         isRefreshing={isRefreshing}
+        highlightedId={highlightedId}
         onEdit={onEdit}
         onDelete={onDelete}
       />

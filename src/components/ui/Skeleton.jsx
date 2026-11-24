@@ -6,7 +6,7 @@ import './Skeleton.css'
  * "Loading transactions…".
  *
  * @param {object} props
- * @param {'text'|'short'|'amount'|'pill'|'figure'} [props.shape='text']
+ * @param {'text'|'short'|'amount'|'bar'|'figure'|'hero'} [props.shape='text']
  */
 export default function Skeleton({ shape = 'text', className }) {
   return <span className={['skeleton', `skeleton--${shape}`, className].filter(Boolean).join(' ')} aria-hidden="true" />

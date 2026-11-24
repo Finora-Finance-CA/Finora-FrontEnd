@@ -701,7 +701,7 @@ describe('adding a transaction', () => {
 
     await addExpense({ amount: '12.50' })
 
-    expect(await screen.findByText('Expense of $12.50 saved.')).toBeInTheDocument()
+    expect(await screen.findByText('Expense of $12.50 added.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({ amount_cents: 1250, type: 'expense', category: 'Food' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus())
@@ -774,7 +774,7 @@ describe('adding a transaction', () => {
 
     await screen.findByText('Loading transactions…')
     await addExpense()
-    await screen.findByText('Expense of $4.75 saved.')
+    await screen.findByText('Expense of $4.75 added.')
 
     await act(async () => secondLoad.resolve(pageOf([coffee, LUNCH])))
     await act(async () => firstLoad.resolve(pageOf([LUNCH])))
